@@ -28,7 +28,7 @@ case class Compose[T1 <: Tuple, T2 <: Tuple, T3 <: Tuple](r1: Routine[T1, T2], r
 
 
 // class State[T <: Tuple]
-trait StateWithRoutine[I <: Tuple, R <: Tuple]:
+trait StateWithRoutine[I <: Tuple, R <: Tuple1[R]]:
   type O <: Tuple
   def stateS: State[O, R]
   def routine: Routine[I, O]
@@ -40,11 +40,11 @@ trait StateWithRoutine[I <: Tuple, R <: Tuple]:
       def stack = newStack
     }
 
-trait AcceptingWithRoutine[I <: Tuple, R <: Tuple] extends StateWithRoutine[I, R]:
+trait AcceptingWithRoutine[I <: Tuple, R <: Tuple1[R]] extends StateWithRoutine[I, R]:
   type O = R
 
 
-sealed trait State[S <: Tuple, R <: Tuple]:
+sealed trait State[S <: Tuple, R <: Tuple1[R]]:
   def next(c : Char): List[StateWithRoutine[S, R]]
  // type R <: Routine
 //   def exec(stack : T, word : List[Char]): Option[R]
@@ -61,20 +61,20 @@ sealed trait State[S <: Tuple, R <: Tuple]:
 // case object Nil extends HListWithBound[Any]
 // case class Cons[T, H <: T, TT <: HListWithBound[T]](head : H, tail : TT) extends HListWithBound[T]
 
-trait Thread[R <: Tuple]:
+trait Thread[R <: Tuple1[R]]:
   type S <: Tuple
   def state: State[S, R]
   def stack: S
 
-trait MooreMachine[R]:
+trait MooreMachine[R <: Tuple1[R]]:
   //type State
   // type SLookup[X <: State] <: Tuple
   // type Lookup[X <: Option[State]] <: Tuple = X match
   //   case Some[s] => SLookup[s]
   //   case None.type => Snoc[EmptyTuple, R]
-  val initStates : List[StateWithRoutine[EmptyTuple, R *: EmptyTuple]]
+  val initStates : List[StateWithRoutine[EmptyTuple, R]]
   def parse(word : List[Char]): Option[R] =
-    def parseRec(word : List[Char], threads : List[Thread[R *: EmptyTuple]]): Option[R] =
+    def parseRec(word : List[Char], threads : List[Thread[R]]): Option[R] =
       word match
         case c :: rest => parseRec(rest, ???)
         case Nil => ???
