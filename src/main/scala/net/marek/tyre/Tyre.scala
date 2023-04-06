@@ -1,4 +1,4 @@
-//> using scala "3.2.1"
+//> using scala "3.3.0-RC3"
 
 //Tyre
 sealed trait Tyre[T]
