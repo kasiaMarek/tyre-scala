@@ -27,26 +27,26 @@ case class Star[A](re: Tyre[A]) extends Tyre[List[A]]
 
 
 //Heterogenous stack
-sealed trait TStack
-class SNil extends TStack
-case class Cons[F, T <: TStack](head: F, tail: T) extends TStack
+// sealed trait TStack
+// class SNil extends TStack
+// case class Cons[F, T <: TStack](head: F, tail: T) extends TStack
 
-sealed trait Op[A <: TStack, B <: TStack]
-case class Push[A <: TStack, E](e: E) extends Op[A, Cons[E, A]]
-case class Red[A <: TStack, E, F, G](f: E => F => G)
-    extends Op[Cons[E, Cons[F, A]], Cons[G, A]]
-case class Trans[A <: TStack, E, G](f: E => G)
-    extends Op[Cons[E, A], Cons[G, A]]
+// sealed trait Op[A <: TStack, B <: TStack]
+// case class Push[A <: TStack, E](e: E) extends Op[A, Cons[E, A]]
+// case class Red[A <: TStack, E, F, G](f: E => F => G)
+//     extends Op[Cons[E, Cons[F, A]], Cons[G, A]]
+// case class Trans[A <: TStack, E, G](f: E => G)
+//     extends Op[Cons[E, A], Cons[G, A]]
 
-sealed trait State[A <: TStack, B]
-class Accept[B] extends State[SNil, B]
-case class Item[A <: TStack, B](c: Char, st: State[A, B]) extends State[A, B]
-case class ReducePair[A <: TStack, B, C <: TStack](
-    op: Op[A, C],
-    st: State[C, B]
-) extends State[A, B]
-case class Split[A <: TStack, B](st1: State[A, B], st2: State[A, B])
-    extends State[A, B]
+// sealed trait State[A <: TStack, B]
+// class Accept[B] extends State[SNil, B]
+// case class Item[A <: TStack, B](c: Char, st: State[A, B]) extends State[A, B]
+// case class ReducePair[A <: TStack, B, C <: TStack](
+//     op: Op[A, C],
+//     st: State[C, B]
+// ) extends State[A, B]
+// case class Split[A <: TStack, B](st1: State[A, B], st2: State[A, B])
+//     extends State[A, B]
 //Fail :: State xs res
 //Instructions
 // sealed trait Routine[A, B <: TStack]:
