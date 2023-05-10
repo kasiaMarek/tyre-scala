@@ -59,19 +59,23 @@ trait StateWithInitRoutine[R]:
       def stack = newStack
     }
 
-sealed trait State[S <: Tuple, R]:
-  def next(c : Char): List[StateWithRoutine[S, R]]
+trait State[S <: Tuple, R]:
+  val next: List[StateWithRoutine[S, R]]
+  def test(c : Char): Boolean
   def id(s: S): S = s
 
-sealed trait AcceptingState[R] extends State[R *: EmptyTuple, R]:
-  def next(c : Char): List[StateWithRoutine[R *: EmptyTuple, R]]
+class AcceptingState[R] extends State[R *: EmptyTuple, R]:
+  val next: List[StateWithRoutine[R *: EmptyTuple, R]] = Nil
+  def test(c : Char) = false
 
 trait Thread[R]:
   type S <: Tuple
   def state: State[S, R]
   def stack: S
   def next(c : Char): List[Thread[R]] =
-    state.next(c).map(_.thread(stack, c))
+    if(state.test(c))
+    then state.next.map(_.thread(stack, c))
+    else Nil
   def getIfAccepting: Option[R] =
     state match
       case a : AcceptingState[R @unchecked] =>

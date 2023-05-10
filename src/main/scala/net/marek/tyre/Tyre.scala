@@ -7,6 +7,8 @@ case class Pred(f: Char => Boolean) extends Tyre[Char]
 case class Or[A, B](right: Tyre[A], left: Tyre[B]) extends Tyre[Either[A, B]]
 case class And[A, B](right: Tyre[A], left: Tyre[B]) extends Tyre[(A, B)]
 case class Star[A](re: Tyre[A]) extends Tyre[List[A]]
+case object Epsilon extends Tyre[Unit]
+case class Conv[A,B](tyre: Tyre[A], f: A => B) extends Tyre[B]
 
 
 
