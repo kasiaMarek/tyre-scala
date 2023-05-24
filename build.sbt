@@ -5,7 +5,7 @@ lazy val basicSettings = Seq(
   startYear := Some(2023),
   name := "tyre-scala",
   description := "Typed regex parser",
-  scalaVersion := "3.3.0-RC5"
+  scalaVersion := "3.3.0"
 )
 
 addCommandAlias("check", "; scalafmtCheck ; scalafix --check")
