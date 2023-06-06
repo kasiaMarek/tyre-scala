@@ -23,20 +23,20 @@ case class Compose[IS <: Tuple, S <: Tuple, OS <: Tuple](r1: Routine[IS, S], r2:
   def execOn(stack: IS, c: Char): OS = r2.execOn(r1.execOn(stack, c), c)
 
 
-trait RoutineToState[IS <: Tuple, R]:
+trait RoutineNextState[IS <: Tuple, R]:
   self =>
   type OS <: Tuple
   def routine: Routine[IS, OS]
-  def state: State[OS, R]
-  def thread(stack: IS, c : Char): Thread[R] =
+  def nextState: State[OS, R]
+  def thread(stack: IS, c: Char): Thread[R] =
     val newStack = routine.execOn(stack, c)
     new Thread:
       type S = OS
-      def state = self.state
+      def state = self.nextState
       def stack = newStack
 
 trait State[S <: Tuple, R]:
-  val next: List[RoutineToState[S, R]]
+  val next: List[RoutineNextState[S, R]]
   def test(c : Char): Boolean
   def id(s: S): S = s
 
@@ -52,7 +52,7 @@ trait InitState[IS <: Tuple, R]:
       def stack = op(initStack)
 
 class AcceptingState[R] extends State[RS[R], R]:
-  val next: List[RoutineToState[RS[R], R]] = Nil
+  val next: List[RoutineNextState[RS[R], R]] = Nil
   def test(c: Char) = false
 
 trait Thread[R]:
