@@ -4,16 +4,8 @@ sealed trait Routine[IS <: Tuple, OS <: Tuple]:
 case object Empty extends Routine[Nix, Nix]:
   def execOn(stack: Nix, c: Char): Nix = Tuple()
 
-case class Push[E, IS <: Tuple](e: E) extends Routine[IS, E *: IS]:
-  def execOn(stack: IS, c: Char): E *: IS = e *: stack
-
 case class PushChar[IS <: Tuple]() extends Routine[IS, Char *: IS]:
   def execOn(stack: IS, c: Char): Char *: IS = c *: stack
-
-case class ReducePair[S <: Tuple, E1, E2, E3](op: (E1, E2) => E3) extends Routine[E2 *: E1 *: S, E3 *: S]:
-  def execOn(stack: E2 *: E1 *: S, c: Char): E3 *: S =
-    stack match
-      case e2 *: e1 *: s => op(e1, e2) *: s
 
 case class Transform[IS <: Tuple, OS <: Tuple](op: IS => OS) extends Routine[IS, OS]:
   def execOn(stack: IS, c : Char): OS = op(stack)
@@ -22,6 +14,9 @@ case class Compose[IS <: Tuple, S <: Tuple, OS <: Tuple](r1: Routine[IS, S], r2:
   extends Routine[IS, OS]:
   def execOn(stack: IS, c: Char): OS = r2.execOn(r1.execOn(stack, c), c)
 
+case class OnTail[H, IS <: Tuple, OS <: Tuple](r: Routine[IS, OS]) extends Routine[H *: IS, H *: OS]:
+  def execOn(stack: H *: IS, c: Char): H *: OS = stack match
+    case h *: t => h *: r.execOn(t, c)
 
 trait RoutineNextState[IS <: Tuple, R]:
   self =>

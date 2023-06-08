@@ -1,12 +1,12 @@
 object MMConstruction:
-	
+
   def compile[IS <: Tuple, T, R](tyre: Tyre[T], mm: MooreMachine[T *: IS, R]): MooreMachine[IS, R] = tyre match
     case Pred(f) =>
       val initState = new InitState[IS, R]:
         type OS = IS
         val state = new State:
           val next: List[RoutineNextState[IS, R]] =
-            mm.initStates.map: is => 
+            mm.initStates.map: is =>
               new RoutineNextState[IS, R]:
                 type OS = is.OS
                 def nextState: State[OS, R] = is.state
@@ -14,7 +14,7 @@ object MMConstruction:
           def test(c: Char) = f(c)
         val op = identity
       new MooreMachine[IS, R]:
-      	val initStates = List(initState)
+        val initStates = List(initState)
     case Or(l: Tyre[t1], r: Tyre[t2]) =>
       val mmL = mmMap[T, t1, IS, R](x => Left(x), mm)
       val mmR = mmMap[T, t2, IS, R](x => Right(x), mm)
@@ -30,12 +30,8 @@ object MMConstruction:
       val mmF = compile[t1 *: IS, t2, R](r, mmT)
       compile[IS, t1, R](l, mmF)
     case Star(re: Tyre[t]) =>
-      val mmE = mmMap[T, t, IS, R](_ => Nil, mm)
-      val mmS = mmMap[T, t, IS, R](x => List(x), mm)
-      val mmI = new MooreMachine[t *: IS, R]:
-        val initStates = mmE.initStates ++ mmS.initStates
-      val mmL = compile(re, mmI)
-      mmLoop[T, IS, R](mmL)
+      val mmE = compile[IS, t, t *: IS](re, mmSeed[t *: IS, t *: IS](identity))
+      mmLoop[t, IS, R](mmE, mm)
     case Epsilon =>
       new MooreMachine[IS, R]:
         val initStates = mm.initStates.map: is =>
@@ -69,21 +65,51 @@ object MMConstruction:
     new MooreMachine[T2 *: IS, R]:
       val initStates = initStates
 
-  def mmLoop[T, IS <: Tuple, R](mm: MooreMachine[IS, R]): MooreMachine[IS, R] = ???
+  def mmLoop[T, IS <: Tuple, R](
+    mmE: MooreMachine[IS, T *: IS],
+    mm: MooreMachine[List[T] *: IS, R]
+  ): MooreMachine[IS, R] =
 
-  def loop[IS <: Tuple, T, R](mm: MooreMachine[IS, T *: IS], cont: MooreMachine[List[T] *: IS, R]): MooreMachine[IS, R] =
-    def fixState[OS <: Tuple](state : State[OS, T *: IS]): List[State[List[T] *: OS, R]] =
-      state match
-        case a : AcceptingState[_] => ???
-        case s => ???
-      
+    def fixState[S <: Tuple](
+      initStates: List[InitState[IS, R]],
+      rns: RoutineNextState[S, T *: IS]
+    ): List[RoutineNextState[List[T] *: S, R]] = rns.nextState match
+      case a: AcceptingState[_] =>
+        mm.initStates.map: is =>
+          new RoutineNextState[List[T] *: S, R]:
+            type OS = is.OS
+            def routine: Routine[List[T] *: S, OS] =
+              Compose[List[T] *: S, List[T] *: T *: IS, OS](
+                // TODO: get rid of asInstanceOf
+                OnTail(rns.routine.asInstanceOf[Routine[S, T *: IS]]),
+                Transform:
+                  case l *: e *: t => is.op((l :+ e) *: t)
+              )
+            def nextState: State[OS, R] = is.state
+        ++
+        initStates.map: is =>
+          ???
+      case s => List:
+        new RoutineNextState[List[T] *: S, R]:
+          type OS = List[T] *: rns.OS
+          def routine: Routine[List[T] *: S, OS] = OnTail(rns.routine)
+          def nextState: State[OS, R] = new State:
+            val next: List[RoutineNextState[OS, R]] = s.next.flatMap(fixState(initStates, _))
+            def test(c: Char): Boolean = s.test(c)
+
     new MooreMachine[IS, R]:
       val initStates =
-        mm.initStates.flatMap: is =>
-          fixState(is.state).map: fixedState =>
-            new InitState[IS, R]:
-              type OS = List[T] *: is.OS
-              def state = fixedState
-              val op = x => Nil *: is.op(x)
-
-
+        mmE.initStates.flatMap: is =>
+          is.state match
+            case a: AcceptingState[_] => Nil
+            case s =>
+              List:
+                new InitState[IS, R]:
+                  type OS = List[T] *: is.OS
+                  def state = new State:
+                    val next: List[RoutineNextState[OS, R]] = s.next.flatMap(fixState(initStates, _))
+                    def test(c: Char): Boolean = s.test(c)
+                  val op = x => Nil *: is.op(x)
+        ++
+        mm.initStates.map: is =>
+          ???
