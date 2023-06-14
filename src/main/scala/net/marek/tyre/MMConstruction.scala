@@ -88,7 +88,18 @@ object MMConstruction:
             def nextState: State[OS, R] = is.state
         ++
         initStates.map: is =>
-          ???
+          new RoutineNextState[List[T] *: S, R]:
+            type OS = is.OS
+            def routine: Routine[List[T] *: S, OS] =
+              Compose[List[T] *: S, List[T] *: T *: IS, OS](
+                // TODO: get rid of asInstanceOf
+                OnTail(rns.routine.asInstanceOf[Routine[S, T *: IS]]),
+                Transform:
+                  case l *: e *: t => (is.op(t): @unchecked) match
+                    // TODO: get rid of asInstanceOf and unchecked
+                    case _ *: tt => ((l :+ e) *: tt).asInstanceOf[OS]
+              )
+            def nextState: State[OS, R] = is.state
       case s => List:
         new RoutineNextState[List[T] *: S, R]:
           type OS = List[T] *: rns.OS
@@ -112,4 +123,7 @@ object MMConstruction:
                   val op = x => Nil *: is.op(x)
         ++
         mm.initStates.map: is =>
-          ???
+          new InitState[IS, R]:
+            type OS = is.OS
+            def state = is.state
+            val op = x => is.op(Nil *: x)
