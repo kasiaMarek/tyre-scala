@@ -156,7 +156,7 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
       val initStates = List(Left(initState))
 
   def mmMap[T1, T2, IS <: Tuple](f: T2 => T1, mm: MooreMachine[T1 *: IS]): MooreMachine[T2 *: IS] =
-    val initStates =
+    val iss =
       mm.initStates.map:
         case Left(is) =>
           def op(x : T2 *: IS) = is.op(f(x.head) *: x.tail)
@@ -168,4 +168,4 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
               def state: NonAcceptingState[OS] = is.state
               val op = x => is.op(f(x.head) *: x.tail)
     new MooreMachine[T2 *: IS]:
-      val initStates = initStates
+      val initStates = iss
