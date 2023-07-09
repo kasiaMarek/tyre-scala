@@ -1,93 +1,114 @@
-//> using scala "3.3.0-RC3"
+sealed trait Routine[IS <: Tuple, OS <: Tuple]:
+  def execOn(stack: IS, c: Char): OS
 
-sealed trait Routine[A <: Tuple, B <: Tuple]:
-  def execOn(stack: A, c: Char): B
+case object Empty extends Routine[Nix, Nix]:
+  def execOn(stack: Nix, c: Char): Nix = Tuple()
 
-sealed trait InitRoutine[A <: Tuple, B <: Tuple] extends Routine[A, B]:
-  def execOn(stack: A, c: Char): B = execOn(stack)
-  def execOn(stack: A): B
+case class PushChar[IS <: Tuple]() extends Routine[IS, Char *: IS]:
+  def execOn(stack: IS, c: Char): Char *: IS = c *: stack
 
-case object Empty extends InitRoutine[EmptyTuple, EmptyTuple]:
-  def execOn(stack: EmptyTuple): EmptyTuple = Tuple()
+case class Transform[IS <: Tuple, OS <: Tuple](op: IS => OS) extends Routine[IS, OS]:
+  def execOn(stack: IS, c : Char): OS = op(stack)
 
-case class Push[E, T <: Tuple](x: E) extends InitRoutine[T, E *: T]:
-  def execOn(stack: T): E *: T = x *: stack
+case class Compose[IS <: Tuple, S <: Tuple, OS <: Tuple](r1: Routine[IS, S], r2: Routine[S, OS])
+  extends Routine[IS, OS]:
+  def execOn(stack: IS, c: Char): OS = r2.execOn(r1.execOn(stack, c), c)
 
-case class PushChar[T <: Tuple]() extends Routine[T, Char *: T]:
-  def execOn(stack: T, c: Char): Char *: T = c *: stack
+case class OnTail[H, IS <: Tuple, OS <: Tuple](r: Routine[IS, OS]) extends Routine[H *: IS, H *: OS]:
+  def execOn(stack: H *: IS, c: Char): H *: OS = stack match
+    case h *: t => h *: r.execOn(t, c)
 
-case class ReducePair[T <: Tuple, X, Y, Z](op: (X, Y) => Z) extends InitRoutine[Y *: X *: T, Z *: T]:
-  def execOn(stack: Y *: X *: T): Z *: T =
-    stack match
-      case y *: x *: t => op(x, y) *: t
+class Context[R <: Tuple]:
+// --- states
+  sealed trait State[S <: Tuple]:
+    val next: List[RoutineNextState[S]]
+    def test(c : Char): Boolean
+    def id(s: S): S = s
 
-case class Transform[T <: Tuple, X, Y](op: X => Y) extends InitRoutine[X *: T, Y *: T]:
-  def execOn(stack: X *: T): Y *: T =
-    stack match
-      case x *: stack => op(x) *: stack
+  trait NonAcceptingState[S <: Tuple] extends State[S]
 
-case class Compose[T1 <: Tuple, T2 <: Tuple, T3 <: Tuple](r1: Routine[T1, T2], r2: Routine[T2, T3])
-  extends Routine[T1, T3]:
-  def execOn(stack: T1, c: Char): T3 = r2.execOn(r1.execOn(stack, c), c)
+  class AcceptingState extends State[R]:
+    val next: List[RoutineNextState[R]] = Nil
+    def test(c: Char) = false
 
-case class ComposeInit[T1 <: Tuple, T2 <: Tuple, T3 <: Tuple](r1: InitRoutine[T1, T2], r2: InitRoutine[T2, T3])
-  extends InitRoutine[T1, T3]:
-  def execOn(stack: T1): T3 = r2.execOn(r1.execOn(stack))
+//--- routine next state
+  type RoutineNextState[IS <: Tuple] = Either[RoutineAcceptingNextState[IS], RoutineNonAcceptingNextState[IS]]
 
+  extension[IS <: Tuple] (r: RoutineNextState[IS])
+    def thread(stack: IS, c: Char): Thread =
+      r match
+        case Left(r) => r.thread(stack, c)
+        case Right(r) => r.thread(stack, c)
 
-trait StateWithRoutine[I <: Tuple, R]:
-  type O <: Tuple
-  def stateS: State[O, R]
-  def routine: Routine[I, O]
-  def thread(stack : I, c : Char): Thread[R] =
-    val newStack = routine.execOn(stack, c)
-    new Thread {
-      type S = O
-      def state = stateS
-      def stack = newStack
-    }
+  trait RoutineNonAcceptingNextState[IS <: Tuple]:
+    self =>
+    type OS <: Tuple
+    def routine: Routine[IS, OS]
+    def nextState: NonAcceptingState[OS]
+    def thread(stack: IS, c: Char): Thread =
+      val newStack = routine.execOn(stack, c)
+      new Thread:
+        type S = OS
+        def state = self.nextState
+        def stack = newStack
 
-trait StateWithInitRoutine[R]:
-  type O <: Tuple
-  def stateS: State[O, R]
-  def routine: InitRoutine[EmptyTuple, O]
-  def thread: Thread[R] =
-    val newStack = routine.execOn(Tuple.apply())
-    new Thread {
-      type S = O
-      def state = stateS
-      def stack = newStack
-    }
+  trait RoutineAcceptingNextState[IS <: Tuple]:
+    self =>
+    def routine: Routine[IS, R]
+    def thread(stack: IS, c: Char): Thread =
+      val newStack = routine.execOn(stack, c)
+      new Thread:
+        type S = R
+        def state = new AcceptingState()
+        def stack = newStack
 
-trait State[S <: Tuple, R]:
-  val next: List[StateWithRoutine[S, R]]
-  def test(c : Char): Boolean
-  def id(s: S): S = s
+//--- init states
+  type InitState[IS <: Tuple] = Either[InitAcceptingState[IS], InitNonAcceptingState[IS]]
 
-class AcceptingState[R] extends State[R *: EmptyTuple, R]:
-  val next: List[StateWithRoutine[R *: EmptyTuple, R]] = Nil
-  def test(c : Char) = false
+  extension[IS <: Tuple] (is: InitState[IS])
+    def thread(initStack: IS): Thread =
+      is match
+        case Right(is) => is.thread(initStack)
+        case Left(is) => is.thread(initStack)
+      
 
-trait Thread[R]:
-  type S <: Tuple
-  def state: State[S, R]
-  def stack: S
-  def next(c : Char): List[Thread[R]] =
-    if(state.test(c))
-    then state.next.map(_.thread(stack, c))
-    else Nil
-  def getIfAccepting: Option[R] =
-    state match
-      case a : AcceptingState[R @unchecked] =>
-        Some(a.id(stack)(0))
-      case _ => None
+  case class InitAcceptingState[IS <: Tuple](op: IS => R):
+    def thread(initStack: IS): Thread =
+      new Thread:
+        type S = R
+        def state = new AcceptingState()
+        def stack = op(initStack)
 
-trait MooreMachine[R]:
-  val initStates : List[StateWithInitRoutine[R]]
-  def parse(word : List[Char]): Option[R] =
-    def parseRec(word : List[Char], threads : List[Thread[R]]): Option[R] =
-      word match
-        case c :: rest => parseRec(rest, threads.flatMap(_.next(c)))
-        case Nil => threads.map(_.getIfAccepting).collectFirst:
-          case Some(value) => value
-    parseRec(word, initStates.map(_.thread))
+  trait InitNonAcceptingState[IS <: Tuple]:
+    self =>
+    type OS <: Tuple
+    def state: NonAcceptingState[OS]
+    val op: IS => OS
+    def thread(initStack: IS): Thread =
+      new Thread:
+        type S = OS
+        def state = self.state
+        def stack = op(initStack)
+
+  trait Thread:
+    type S <: Tuple
+    def state: State[S]
+    def stack: S
+    def next(c: Char): List[Thread] =
+      if(state.test(c))
+      then state.next.map(_.thread(stack, c))
+      else Nil
+    def getIfAccepting: Option[R] =
+      state match
+        case a: AcceptingState => Some(a.id(stack))
+        case _ => None
+
+  trait MooreMachine[IS <: Tuple]:
+    val initStates: List[InitState[IS]]
+    def parse(initStack: IS, word: List[Char]): Option[R] =
+      def parseRec(word: List[Char], threads: List[Thread]): Option[R] =
+        word match
+          case c :: rest => parseRec(rest, threads.flatMap(_.next(c)))
+          case Nil => threads.map(_.getIfAccepting).collectFirst:
+            case Some(value) => value
+      parseRec(word, initStates.map(_.thread(initStack)))
