@@ -16,6 +16,7 @@ lazy val root = (project in file("."))
     licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
     libraryDependencies ++= Seq(
       "org.typelevel" %% "cats-core" % "2.9.0",
+      "org.scala-lang.modules" % "scala-parser-combinators_3" % "2.3.0",
       "org.scalatest" %% "scalatest" % "3.2.15" % Test
     ),
     Test / fork := true,
