@@ -4,7 +4,8 @@ sealed trait Tyre[R]:
 	def <*>[S](re: Tyre[S]) = And(this, re)
 	def <|>[S](re: Tyre[S]) = Or(this, re)
 	def map[S](f: R => S) = Conv(this, f)
-case class Pred(f: Char => Boolean) extends Tyre[Char]
+case class Pred(f: Char => Boolean) extends Tyre[Char]:
+	override def toString: String = "Pred(_)"
 case class Or[R1, R2](right: Tyre[R1], left: Tyre[R2]) extends Tyre[Either[R1, R2]]
 case class And[R1, R2](right: Tyre[R1], left: Tyre[R2]) extends Tyre[(R1, R2)]
 case class Star[R](re: Tyre[R]) extends Tyre[List[R]]
