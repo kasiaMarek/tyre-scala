@@ -51,32 +51,38 @@ object TyreParser extends Parsers:
 	inline def apply(input: String): Option[TyreWrapper] = parse(input)
 
 	inline def parse(input: String): Option[TyreWrapper] =
-		def parseRec(input: List[Char], acc: Option[TyreWrapper]): (List[Char], Option[TyreWrapper]) = input match
+		def parseRec(input: List[Char], acc: Option[TyreWrapper], level: Int): ParseState = input match
 			case '|' :: tail =>
-				val (rest, next) = parseRec(tail, None)
+				val nextS = parseRec(tail, None, level)
 				val tyre = for
 					l <- acc
-					r <- next
+					r <- nextS.tyre
 				yield OrTyreWrapper(l, r)
-				(rest, tyre)
+				ParseState(nextS.input, tyre, level)
 			case '*' :: tail =>
 				val tyre = acc.map(StarTyreWrapper(_))
-				(tail, tyre)
+				ParseState(tail, tyre, level)
 			case '(' :: tail =>
-				val (rest, in) = parseRec(tail, None)
+				val inS = parseRec(tail, None, level+1)
 				val tyre = for
 					l <- acc
-					r <- in
+					r <- inS.tyre
 				yield AndTyreWrapper(l, r)
-				parseRec(rest, tyre.orElse(in))
+				parseRec(inS.input, tyre.orElse(inS.tyre), level)
 			case ')' :: tail =>
-				(tail, acc)
+				ParseState(tail, acc, level-1)
 			case c :: tail =>
 				val pred = TyreWrapper(Tyre.char(c))
 				val tyre = acc.map(AndTyreWrapper(_, pred)).orElse(Some(pred))
-				parseRec(tail, tyre)
-			case Nil => (Nil, acc)
-		if input.isEmpty then Some(TyreWrapper(Epsilon)) else parseRec(input.toList, None)(1)
+				parseRec(tail, tyre, level)
+			case Nil => ParseState(Nil, acc, level)
+		if input.isEmpty
+		then Some(TyreWrapper(Epsilon))
+		else
+			val state = parseRec(input.toList, None, 0)
+			if state.level == 0 then state.tyre else None
+
+	case class ParseState(input: List[Char], tyre: Option[TyreWrapper], level: Int)
 
 enum Token:
 	case Star
