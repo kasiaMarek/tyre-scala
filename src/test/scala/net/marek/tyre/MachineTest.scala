@@ -48,3 +48,9 @@ class MachineTest extends AnyFunSuite:
 		assert(m.run("XYQABABQ").contains(List(xyq, abq)))
 		assert(m.run("XYABABQ").isEmpty)
 		assert(m.run("").contains(Nil))
+
+	test("Star in Star"):
+		val tyre = ('A').rep.rep
+		val m = tyre.compile()
+		assert(m.run("AAA").contains(List(List('A'), List('A'), List('A'))))
+		assert(m.run("AAX").isEmpty)

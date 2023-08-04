@@ -15,3 +15,11 @@ case class Conv[R1, R2](tyre: Tyre[R1], f: R1 => R2) extends Tyre[R2]
 object Tyre:
 	def char(c : Char) = Pred(_ == c)
 	given Conversion[Char, Tyre[Char]] = char(_)
+
+//Re
+sealed trait Re
+case class ReChar(c: Char) extends Re
+case class ReOr(right: Re, left: Re) extends Re
+case class ReAnd(right: Re, left: Re) extends Re
+case class ReStar(re: Re) extends Re
+case object ReEpsilon extends Re

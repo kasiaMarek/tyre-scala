@@ -9,6 +9,8 @@ class StringParserTest extends AnyFunSuite:
 		println(TyreParser("x(y|a)b"))
 		println(TyreParser("x|y*"))
 		println(TyreParser("x)y"))
+		println(TyreParser("x|*"))
+		println(TyreParser("(x*y)*"))
 		val t = tyre"x"
 		println(t)
 		// val good = tyre"x"
