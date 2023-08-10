@@ -5,7 +5,7 @@ sealed trait Tyre[R]:
 	def <|>[S](re: Tyre[S]) = Or(this, re)
 	def map[S](f: R => S) = Conv(this, f)
 case class OneOf(cs: List[Char]) extends Tyre[Char]:
-	override def toString: String = "Pred(_)"
+	override def toString: String = s"OneOf($cs)"
 case class Or[R1, R2](right: Tyre[R1], left: Tyre[R2]) extends Tyre[Either[R1, R2]]
 case class And[R1, R2](right: Tyre[R1], left: Tyre[R2]) extends Tyre[(R1, R2)]
 case class Star[R](re: Tyre[R]) extends Tyre[List[R]]
@@ -18,7 +18,7 @@ object Tyre:
 
 //Re
 sealed trait Re
-case class ReChar(c: Char) extends Re
+case class ReOneOf(cs: List[Char]) extends Re
 case class ReOr(right: Re, left: Re) extends Re
 case class ReAnd(right: Re, left: Re) extends Re
 case class ReStar(re: Re) extends Re

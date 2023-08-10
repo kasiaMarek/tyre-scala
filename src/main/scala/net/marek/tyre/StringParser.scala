@@ -5,161 +5,80 @@ import scala.util.parsing.combinator.Parsers
 import scala.util.parsing.input.Reader
 import scala.util.parsing.input.Position
 import scala.compiletime.error
-import TyreToExpr.given
 import quoted.ToExpr.given
 import scala.quoted.Type
+import ReToExpr.given
+import scala.quoted.Varargs
 
-extension (sc: StringContext)
-  inline def tyre(args: Any*) = ${ tyreImpl('{ sc }, '{ args }) }
+extension (inline sc: StringContext)
+  inline def tyre(inline args: Any*) = ${ tyreImpl('{ sc }, '{ args }) }
 
 private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes) =
 
 	import quotes.reflect.*
-
-	// val fullText = '{${ sc }.s(${args}*)}.valueOrAbort
 	
-	def createType(tw: TyreWrapper): TypeRepr = tw match
-		case _: EpsilonTyreWrapper => TypeRepr.of[Unit]
-		case _: CharTyreWrapper => TypeRepr.of[Char]
-		case AndTyreWrapper(tw1, tw2) => TypeRepr.of[Tuple2].appliedTo(List(createType(tw1), createType(tw2)))
-		case OrTyreWrapper(tw1, tw2) => TypeRepr.of[Either].appliedTo(List(createType(tw1), createType(tw2)))
-		case StarTyreWrapper(tw) => TypeRepr.of[List].appliedTo(createType(tw))
+	def createType(re: Re): TypeRepr = re match
+		case ReEpsilon => TypeRepr.of[Unit]
+		case ReOneOf(_) => TypeRepr.of[Char]
+		case ReAnd(re1, re2) => TypeRepr.of[Tuple2].appliedTo(List(createType(re1), createType(re2)))
+		case ReOr(re1, re2) => TypeRepr.of[Either].appliedTo(List(createType(re1), createType(re2)))
+		case ReStar(re) => TypeRepr.of[List].appliedTo(createType(re))
 
-	// val fullTyre = '{ ${ sc }.s(${args}*) }.valueOrAbort
-	val fullTyre = "x"
-	val tw = TyreParser(fullTyre).get
+	val parts: Seq[String] = sc match
+		case '{ StringContext($t: _*) } =>
+			t match
+				case Varargs(parts) => parts.map(_.valueOrAbort)
 
-	createType(tw).asType match
-		case '[t] => 
-			'{${Expr(tw.tyre)}.asInstanceOf[Tyre[t]]}
+	val args_ =
+		args match
+			case Varargs(pars) =>
+				pars.map: 
+					case '{ $str: String } => str.valueOrAbort
+					case _ => throw new RuntimeException("only string values can be interpolated")
 
-	// '{TyreParser($fullTyre).map(_.tyre)}
+	val fullTyre = parts.zipAll(args_, "", "").mkString
 
-	// def createType2(re: Re): TypeRepr = ???
-
-	// val tw = TyreParser(fullText).get
-
-	// createType2(tw).asType match
-	// 	case '[t] => 
-	// 		def createTyre(re: Re): Expr[Tyre[t]] = ???
+	val re = TyreParser(fullTyre).getOrElse(throw new RuntimeException("incorrect tyre expression"))
 	
-
-	// type TyreType[T <: Re] = T match
-	// 	case ReEpsilon => ()
-	// ???
-	//'{ if "x" == "x" then Some(TyreWrapper(Tyre.char('x'))) else None }
-
-	//def buildExpr[T](t: Tyre[T]): Expr[Tyre[T]] =
-		// t match
-		// 	case Epsilon => '{ Epsilon }
-		// 	case Pred(f) => '{ Pred(???) }
-		// 	case Star(re) => '{ Star(${buildExpr(re)}) }
-		// 	case And(re1, re2) => '{ And(${buildExpr(re1)}, ${buildExpr(re2)}) }
-		// 	case Or(re1, re2) => '{ Or(${buildExpr(re1)}, ${buildExpr(re2)}) }
-		
-	// '{ if "x" == "x" then Some(TyreWrapper(Tyre.char('x'))) else None }
+	createType(re).asType match
+	 	case '[t] => '{${Expr(re)}.asInstanceOf[Tyre[t]]}
 
 
-object TyreParser extends Parsers:
-	type Elem = Token
-	def tokenize(input: String): Reader[Token] =
-		val seq =
-			input.toCharArray().map:
-				case '*' => Token.Star
-				case '|' => Token.Or
-				case '(' => Token.RParen
-				case ')' => Token.LParen
-				case c => Token.Literal(c)
-			.toSeq
-		TokenReader(seq)
-	def pred: Parser[TyreWrapper] =
-		elem("pred", _.isInstanceOf[Token.Literal])
-			^^ {
-					case Token.Literal(c) => new CharTyreWrapper(c)
-					case _ => ???
-				}
-	def expr: Parser[TyreWrapper] =
-		pred |
-		(expr ~ expr) ^^ { case w1 ~ w2 => AndTyreWrapper(w1, w2) } |
-		((expr <~ elem(Token.Or)) ~ expr) ^^ { case w1 ~ w2 => OrTyreWrapper(w1, w2) } |
-		elem(Token.LParen) ~> expr <~ elem(Token.RParen) |
-		expr <~ elem(Token.Star) ^^ { StarTyreWrapper(_) }
-
-	def applyTokenizer(input: String): Option[TyreWrapper] =
-		val tokens = tokenize(input)
-		expr.apply(tokens) match
-			case Success(result, next) if next.atEnd => Some(result)
-			case _ => None
-
-	inline def apply(input: String): Option[TyreWrapper] = parse(input)
-
-	inline def parse(input: String): Option[TyreWrapper] =
-		def parseRec(input: List[Char], acc: Option[TyreWrapper], level: Int): ParseState = input match
+object TyreParser:
+	def apply(input: String): Option[Re] = parse(input)
+	inline def parse(input: String): Option[Re] =
+		def parseRec(input: List[Char], acc: Option[Re], level: Int): ParseState = input match
 			case '|' :: tail =>
 				val nextS = parseRec(tail, None, level)
 				val tyre = for
 					l <- acc
 					r <- nextS.tyre
-				yield OrTyreWrapper(l, r)
+				yield ReOr(l, r)
 				ParseState(nextS.input, tyre, level)
 			case '*' :: tail =>
-				val tyre = acc.map(StarTyreWrapper(_))
+				val tyre = acc.map(ReStar(_))
 				ParseState(tail, tyre, level)
 			case '(' :: tail =>
 				val inS = parseRec(tail, None, level+1)
 				val tyre = for
 					l <- acc
 					r <- inS.tyre
-				yield AndTyreWrapper(l, r)
+				yield ReAnd(l, r)
 				parseRec(inS.input, tyre.orElse(inS.tyre), level)
 			case ')' :: tail =>
 				ParseState(tail, acc, level-1)
 			case c :: tail =>
-				val pred = CharTyreWrapper(c)
-				val tyre = acc.map(AndTyreWrapper(_, pred)).orElse(Some(pred))
+				val pred = ReOneOf(List(c))
+				val tyre = acc.map(ReAnd(_, pred)).orElse(Some(pred))
 				parseRec(tail, tyre, level)
 			case Nil => ParseState(Nil, acc, level)
 		if input.isEmpty
-		then Some(EpsilonTyreWrapper())
+		then Some(ReEpsilon)
 		else
 			val state = parseRec(input.toList, None, 0)
 			if state.level == 0 then state.tyre else None
 
-	case class ParseState(input: List[Char], tyre: Option[TyreWrapper], level: Int)
-
-	// inline def parse2(input: String): Option[Re] =
-	// 	def parseRec(input: List[Char], acc: Option[Re], level: Int): ParseState2 = input match
-	// 		case '|' :: tail =>
-	// 			val nextS = parseRec(tail, None, level)
-	// 			val tyre = for
-	// 				l <- acc
-	// 				r <- nextS.tyre
-	// 			yield ReOr(l, r)
-	// 			ParseState2(nextS.input, tyre, level)
-	// 		case '*' :: tail =>
-	// 			val tyre = acc.map(ReStar(_))
-	// 			ParseState2(tail, tyre, level)
-	// 		case '(' :: tail =>
-	// 			val inS = parseRec(tail, None, level+1)
-	// 			val tyre = for
-	// 				l <- acc
-	// 				r <- inS.tyre
-	// 			yield ReAnd(l, r)
-	// 			parseRec(inS.input, tyre.orElse(inS.tyre), level)
-	// 		case ')' :: tail =>
-	// 			ParseState2(tail, acc, level-1)
-	// 		case c :: tail =>
-	// 			val pred = ReChar(c)
-	// 			val tyre = acc.map(ReAnd(_, pred)).orElse(Some(pred))
-	// 			parseRec(tail, tyre, level)
-	// 		case Nil => ParseState2(Nil, acc, level)
-	// 	if input.isEmpty
-	// 	then Some(ReEpsilon)
-	// 	else
-	// 		val state = parseRec(input.toList, None, 0)
-	// 		if state.level == 0 then state.tyre else None
-
-	// case class ParseState2(input: List[Char], tyre: Option[Re], level: Int)
+	case class ParseState(input: List[Char], tyre: Option[Re], level: Int)
 
 enum Token:
 	case Star
@@ -167,37 +86,6 @@ enum Token:
 	case LParen
 	case RParen
 	case Literal(char: Char)
-
-sealed trait TyreWrapper:
-	type T
-	val tyre: Tyre[T]
-	val re: Re
-	override def toString: String = tyre.toString
-
-class EpsilonTyreWrapper extends TyreWrapper:
-	type T = Unit
-	val tyre = Epsilon
-	val re = ReEpsilon
-
-class CharTyreWrapper(char: Char) extends TyreWrapper:
-	type T = Char
-	val tyre = OneOf(List(char))
-	val re = ReChar(char)
-
-case class AndTyreWrapper(val w1: TyreWrapper, val w2: TyreWrapper) extends TyreWrapper:
-	type T = (w1.T, w2.T)
-	val tyre = And(w1.tyre, w2.tyre)
-	val re = ReAnd(w1.re, w2.re)
-
-case class OrTyreWrapper(val w1: TyreWrapper, val w2: TyreWrapper) extends TyreWrapper:
-	type T = Either[w1.T, w2.T]
-	val tyre = Or(w1.tyre, w2.tyre)
-	val re = ReOr(w1.re, w2.re)
-
-case class StarTyreWrapper(val w: TyreWrapper) extends TyreWrapper:
-	type T = List[w.T]
-	val tyre = Star(w.tyre)
-	val re = ReStar(w.re)
 
 class TokenReader(seq: Seq[Token]) extends Reader[Token]:
 	override def atEnd: Boolean = seq.isEmpty
