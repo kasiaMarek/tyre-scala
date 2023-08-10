@@ -13,7 +13,7 @@ class StringParserTest extends AnyFunSuite:
 		println(TyreParser("(x*y)*"))
 		assertCompiles("""tyre"x"""")
 		assertDoesNotCompile("""tyre"x|*"""")
-		val t = tyre"x|x"
+		val t = tyre"x|xh"
 		println(t)
 		// val good = tyre"x"
 		// val bad = tyre"(aa"

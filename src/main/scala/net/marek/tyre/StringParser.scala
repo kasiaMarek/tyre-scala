@@ -11,7 +11,7 @@ import ReToExpr.given
 import scala.quoted.Varargs
 
 extension (inline sc: StringContext)
-  inline def tyre(inline args: Any*) = ${ tyreImpl('{ sc }, '{ args }) }
+  transparent inline def tyre(inline args: Any*) = ${ tyreImpl('{ sc }, '{ args }) }
 
 private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes) =
 
@@ -39,10 +39,16 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
 	val fullTyre = parts.zipAll(args_, "", "").mkString
 
 	val re = TyreParser(fullTyre).getOrElse(throw new RuntimeException("incorrect tyre expression"))
+
+	transparent inline def toTyre(re: Re): Tyre[?] = re match
+		case ReEpsilon => Epsilon
+		case ReOneOf(cs) => OneOf(cs)
+		case ReAnd(re1, re2) => And(toTyre(re1), toTyre(re2))
+		case ReOr(re1, re2) => Or(toTyre(re1), toTyre(re2))
+		case ReStar(re) => Star(toTyre(re))
 	
 	createType(re).asType match
 	 	case '[t] => '{${Expr(re)}.asInstanceOf[Tyre[t]]}
-
 
 object TyreParser:
 	def apply(input: String): Option[Re] = parse(input)
