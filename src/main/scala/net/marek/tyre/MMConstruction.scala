@@ -2,7 +2,7 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
   import context._
 
   def compile[IS <: Tuple, T](tyre: Tyre[T], mm: MooreMachine[T *: IS]): MooreMachine[IS] = tyre match
-    case Pred(f) =>
+    case OneOf(cs) =>
       val initState =
         new InitNonAcceptingState[IS]:
           type OS = IS
@@ -19,7 +19,7 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
                       type OS = is.OS
                       def nextState: NonAcceptingState[OS] = is.state
                       def routine = Compose(PushChar(), Transform(is.op))
-            def test(c: Char) = f(c)
+            def test(c: Char) = cs.contains(c)
           val op = identity
       new MooreMachine[IS]:
         val initStates = List(Right(initState))
