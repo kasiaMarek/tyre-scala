@@ -1,14 +1,8 @@
 import scala.language.implicitConversions
-import scala.quoted.{Expr, Quotes, quotes}
-import scala.util.parsing.combinator.RegexParsers
-import scala.util.parsing.combinator.Parsers
-import scala.util.parsing.input.Reader
-import scala.util.parsing.input.Position
+import scala.quoted.{Expr, Quotes, Type, Varargs, quotes}
+import scala.util.parsing.combinator.{Parsers, RegexParsers}
+import scala.util.parsing.input.{Position, Reader}
 import scala.compiletime.error
-import quoted.ToExpr.given
-import scala.quoted.Type
-import ReToExpr.given
-import scala.quoted.Varargs
 
 extension (inline sc: StringContext)
   transparent inline def tyre(inline args: Any*) = ${ tyreImpl('{ sc }, '{ args }) }
@@ -40,15 +34,25 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
 
 	val re = TyreParser(fullTyre).getOrElse(throw new RuntimeException("incorrect tyre expression"))
 
-	transparent inline def toTyre(re: Re): Tyre[?] = re match
-		case ReEpsilon => Epsilon
-		case ReOneOf(cs) => OneOf(cs)
-		case ReAnd(re1, re2) => And(toTyre(re1), toTyre(re2))
-		case ReOr(re1, re2) => Or(toTyre(re1), toTyre(re2))
-		case ReStar(re) => Star(toTyre(re))
-	
+	def toTyre(re: Re)(using Quotes): Expr[Tyre[?]] = re match
+		case ReEpsilon => '{ Epsilon }
+		case ReOneOf(cs) => '{ OneOf( ${Expr(cs)}) }
+		case ReAnd(re1, re2) =>
+			toTyre(re1) match
+				case '{$ree1 : Tyre[t1]} =>
+					toTyre(re2) match
+						case '{$ree2 : Tyre[t2]} => '{ And(${ree1}, ${ree2}) }
+		case ReOr(re1, re2) =>
+			toTyre(re1) match
+				case '{$ree1 : Tyre[t1]} =>
+					toTyre(re2) match
+						case '{$ree2 : Tyre[t2]} => '{ Or(${ree1}, ${ree2}) }
+		case ReStar(re) =>
+			toTyre(re) match
+				case '{$ree : Tyre[t1]} => '{ Star(${ree}) }
+
 	createType(re).asType match
-	 	case '[t] => '{${Expr(re)}.asInstanceOf[Tyre[t]]}
+	 	case '[t] => '{${toTyre(re)}.asInstanceOf[Tyre[t]]}
 
 object TyreParser:
 	def apply(input: String): Option[Re] = parse(input)
