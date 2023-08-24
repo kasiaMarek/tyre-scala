@@ -27,7 +27,7 @@ class Context[R <: Tuple]:
 
   trait NonAcceptingState[S <: Tuple] extends State[S]
 
-  class AcceptingState extends State[R]:
+  object AcceptingState extends State[R]:
     val next: List[RoutineNextState[R]] = Nil
     def test(c: Char) = false
 
@@ -59,7 +59,7 @@ class Context[R <: Tuple]:
       val newStack = routine.execOn(stack, c)
       new Thread:
         type S = R
-        def state = new AcceptingState()
+        def state = AcceptingState
         def stack = newStack
 
 //--- init states
@@ -76,7 +76,7 @@ class Context[R <: Tuple]:
     def thread(initStack: IS): Thread =
       new Thread:
         type S = R
-        def state = new AcceptingState()
+        def state = AcceptingState
         def stack = op(initStack)
 
   trait InitNonAcceptingState[IS <: Tuple]:
@@ -100,7 +100,7 @@ class Context[R <: Tuple]:
       else Nil
     def getIfAccepting: Option[R] =
       state match
-        case a: AcceptingState => Some(a.id(stack))
+        case AcceptingState => Some(AcceptingState.id(stack))
         case _ => None
 
   trait MooreMachine[IS <: Tuple]:

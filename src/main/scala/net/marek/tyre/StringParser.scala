@@ -19,7 +19,7 @@ object TyreParser extends Parsers:
 		elem("pred", _.isInstanceOf[Token.Literal])
 			^^ {
 					case Token.Literal(c) => ReOneOf(List(c))
-					case _ => ???
+					case _ => ???	// unreachable code
 				}
 	def consumingExpr: Parser[Re] =
 		elem(Token.LParen) ~> expr <~ elem(Token.RParen) | pred

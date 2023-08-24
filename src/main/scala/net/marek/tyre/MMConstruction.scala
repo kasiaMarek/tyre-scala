@@ -1,3 +1,4 @@
+import scala.quoted.runtime.Patterns.fromAbove
 class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
   import context._
 
@@ -46,7 +47,7 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
       val contr = MMConstruction(ec)
       val mmE = contr.compile[IS, t](re, contr.seedMM)
 
-      mmLoop[IS, t](contr.context, mmE, mm)
+      MMLoop[IS, t](contr.context, mmE).mmLoop(mm)
 
     case Epsilon =>
       new MooreMachine[IS]:
@@ -85,96 +86,118 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
     new MooreMachine[T2 *: IS]:
       val initStates = iss
 
+  class MMLoop[IS <: Tuple, T](val context: Context[T *: IS], mmE: context.MooreMachine[IS]):
+    def mmLoop(
+      mm: MooreMachine[List[T] *: IS]
+    ): MooreMachine[IS] =
 
-  def mmLoop[IS <: Tuple, T](
-    context: Context[T *: IS],
-    mmE: context.MooreMachine[IS],
-    mm: MooreMachine[List[T] *: IS]
-  ): MooreMachine[IS] =
-
-    new MooreMachine[IS]:
-      val initStates =
-        mmE.initStates.flatMap:
-          case Left(_) => Nil
-          case Right(is)=>
-            List:
+      new MooreMachine[IS]:
+        val initStates =
+          mmE.initStates.flatMap:
+            case Left(_) => Nil
+            case Right(is)=>
+              List:
+                Right:
+                  new InitNonAcceptingState[IS]:
+                    type OS = List[T] *: is.OS
+                    def state = new NonAcceptingState:
+                      val next: List[RoutineNextState[OS]] = is.state.next.flatMap(fixState[is.OS](initStates, mm, _))
+                      def test(c: Char): Boolean = is.state.test(c)
+                    val op = x => Nil *: is.op(x)
+          ++
+          mm.initStates.map:
+            case Left(is) => Left(new InitAcceptingState((x: IS) => is.op(Nil *: x)))
+            case Right(is) =>
               Right:
                 new InitNonAcceptingState[IS]:
-                  type OS = List[T] *: is.OS
-                  def state = new NonAcceptingState:
-                    val next: List[RoutineNextState[OS]] = is.state.next.flatMap(fixState[IS,is.OS, T](initStates, mm, context, _))
-                    def test(c: Char): Boolean = is.state.test(c)
-                  val op = x => Nil *: is.op(x)
-        ++
-        mm.initStates.map:
-          case Left(is) => Left(new InitAcceptingState((x: IS) => is.op(Nil *: x)))
-          case Right(is) =>
-            Right:
-              new InitNonAcceptingState[IS]:
-                type OS = is.OS
-                def state = is.state
-                val op = x => is.op(Nil *: x)
+                  type OS = is.OS
+                  def state = is.state
+                  val op = x => is.op(Nil *: x)
 
 
-  def fixState[IS <: Tuple, S <: Tuple, T](
-    initStates: List[InitState[IS]],
-    mm: MooreMachine[List[T] *: IS],
-    context: Context[T *: IS],
-    rns: context.RoutineNextState[S]
-  ): List[RoutineNextState[List[T] *: S]] =
-    rns match
-      case Left(rns) => 
-        mm.initStates.map:
-          case Left(is) =>
-            Left:
-              new RoutineAcceptingNextState[List[T] *: S]:
-                def routine: Routine[List[T] *: S, R *: IN] =
-                  Compose[List[T] *: S, List[T] *: T *: IS, R *: IN](
-                    OnTail(rns.routine),
-                    Transform:
-                      case l *: e *: t => is.op((l :+ e) *: t)
-                  )
-          case Right(is) =>
+    private def fixState[S <: Tuple](
+      initStates: List[InitState[IS]],
+      mm: MooreMachine[List[T] *: IS],
+      rns0: context.RoutineNextState[S],
+      alreadyFixed: List[AlreadyFixedStateMapping] = List.empty
+    ): List[RoutineNextState[List[T] *: S]] =
+      rns0 match
+        case Left(rns) =>
+          mm.initStates.map:
+            case Left(is) =>
+              Left:
+                new RoutineAcceptingNextState[List[T] *: S]:
+                  def routine: Routine[List[T] *: S, R *: IN] =
+                    Compose[List[T] *: S, List[T] *: T *: IS, R *: IN](
+                      OnTail(rns.routine),
+                      Transform:
+                        case l *: e *: t => is.op((l :+ e) *: t)
+                    )
+            case Right(is) =>
+              Right:
+                new RoutineNonAcceptingNextState[List[T] *: S]:
+                  type OS = is.OS
+                  def routine: Routine[List[T] *: S, OS] =
+                    Compose[List[T] *: S, List[T] *: T *: IS, OS](
+                      OnTail(rns.routine),
+                      Transform:
+                        case l *: e *: t => is.op((l :+ e) *: t)
+                    )
+                  def nextState: NonAcceptingState[OS] = is.state
+          ++
+          initStates.map:
+            case Left(is) =>
+              Left:
+                new RoutineAcceptingNextState[List[T] *: S]:
+                  def routine: Routine[List[T] *: S, R *: IN] =
+                    Compose[List[T] *: S, List[T] *: T *: IS, R *: IN](
+                      OnTail(rns.routine),
+                      Transform:
+                        case l *: e *: t => is.op(t) match
+                          case _ *: tt => ((l :+ e).asInstanceOf[R] *: tt)
+                    )
+            case Right(is) =>
+              Right:
+                new RoutineNonAcceptingNextState[List[T] *: S]:
+                  type OS = is.OS
+                  def routine: Routine[List[T] *: S, OS] =
+                    Compose[List[T] *: S, List[T] *: T *: IS, OS](
+                      OnTail(rns.routine),
+                      Transform:
+                        case l *: e *: t => (is.op(t): @unchecked) match
+                          case _ *: tt => ((l :+ e) *: tt).asInstanceOf[OS]
+                    )
+                  def nextState: NonAcceptingState[OS] = is.state
+        case Right(rns) =>
+          def res: List[RoutineNextState[List[T] *: S]] = List:
             Right:
               new RoutineNonAcceptingNextState[List[T] *: S]:
-                type OS = is.OS
-                def routine: Routine[List[T] *: S, OS] =
-                  Compose[List[T] *: S, List[T] *: T *: IS, OS](
-                    OnTail(rns.routine),
-                    Transform:
-                      case l *: e *: t => is.op((l :+ e) *: t)
-                  )
-                def nextState: NonAcceptingState[OS] = is.state
-        ++
-        initStates.map:
-          case Left(is) =>
-            Left:
-              new RoutineAcceptingNextState[List[T] *: S]:
-                def routine: Routine[List[T] *: S, R *: IN] =
-                  Compose[List[T] *: S, List[T] *: T *: IS, R *: IN](
-                    OnTail(rns.routine),
-                    Transform:
-                      case l *: e *: t => is.op(t) match
-                        case _ *: tt => ((l :+ e).asInstanceOf[R] *: tt)
-                  )
-          case Right(is) => 
-            Right:
-              new RoutineNonAcceptingNextState[List[T] *: S]:
-                type OS = is.OS
-                def routine: Routine[List[T] *: S, OS] =
-                  Compose[List[T] *: S, List[T] *: T *: IS, OS](
-                    OnTail(rns.routine),
-                    Transform:
-                      case l *: e *: t => (is.op(t): @unchecked) match
-                        case _ *: tt => ((l :+ e) *: tt).asInstanceOf[OS]
-                  )
-                def nextState: NonAcceptingState[OS] = is.state
-      case Right(rns) => List:
-        Right:
-          new RoutineNonAcceptingNextState[List[T] *: S]:
-            type OS = List[T] *: rns.OS
-            def routine: Routine[List[T] *: S, OS] = OnTail(rns.routine)
-            def nextState: NonAcceptingState[OS] = new NonAcceptingState:
-              val next: List[RoutineNextState[OS]] = rns.nextState.next.flatMap(fixState(initStates, mm, context, _))
-              def test(c: Char): Boolean = rns.nextState.test(c)
+                type OS = List[T] *: rns.OS
+                def routine: Routine[List[T] *: S, OS] = OnTail(rns.routine)
+                def nextState: NonAcceptingState[OS] = new NonAcceptingState:
+                  val next: List[RoutineNextState[OS]] =
+                    lazy val newFixed =
+                      new AlreadyFixedStateMapping:
+                        type B = S
+                        def from = rns0
+                        def to = res
+                    rns.nextState.next.flatMap: next =>
+                      alreadyFixed.getOrElse(next, fixState(initStates, mm, next, newFixed :: alreadyFixed))
+                  def test(c: Char): Boolean = rns.nextState.test(c)
+          res
+
+
+    trait AlreadyFixedStateMapping:
+      type B <: Tuple
+      def get[A <: Tuple](rns: context.RoutineNextState[A]): Option[List[RoutineNextState[List[T] *: A]]] =
+        if rns == from then Some(to.asInstanceOf[List[RoutineNextState[List[T] *: A]]]) else None
+      def from: context.RoutineNextState[B]
+      def to: List[RoutineNextState[List[T] *: B]]
+
+    extension(alreadyFixed: List[AlreadyFixedStateMapping])
+      def getOrElse[A <: Tuple](
+        ns: context.RoutineNextState[A],
+        res: => List[RoutineNextState[List[T] *: A]]
+      ): List[RoutineNextState[List[T] *: A]] =
+        alreadyFixed.collectFirst(_.get(ns) match { case Some(v) => v }).getOrElse(res)
 
