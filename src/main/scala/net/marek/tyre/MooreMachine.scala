@@ -20,7 +20,7 @@ case class OnTail[H, IS <: Tuple, OS <: Tuple](r: Routine[IS, OS]) extends Routi
 
 class Context[R <: Tuple]:
 
-  given Logger = SimpleLogger
+  // given Logger = SimpleLogger
 
   // --- states
   sealed trait State[S <: Tuple]:
@@ -112,7 +112,7 @@ class Context[R <: Tuple]:
       def parseRec(word: List[Char], threads: List[Thread]): Option[R] =
         Logger.log(s"word: $word, threads: ${threads.size}")
         word match
-          case c :: rest => parseRec(rest, threads.flatMap(_.next(c)))
+          case c :: rest => parseRec(rest, threads.flatMap(_.next(c)).distinctBy(_.state))
           case Nil => threads.map(_.getIfAccepting).collectFirst:
             case Some(value) => value
       parseRec(word, initStates.map(_.thread(initStack)))

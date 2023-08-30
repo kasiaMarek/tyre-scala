@@ -225,7 +225,7 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
       def get[A <: Tuple](rns: context.RoutineNextState[A]): Option[List[RoutineNextState[List[T] *: A]]] =
         if rns == from
         then
-          Logger.log("do equal")
+          Logger.log("Already fixed state found")
           Some(to.asInstanceOf[List[RoutineNextState[List[T] *: A]]])
         else None
       def from: context.RoutineNextState[B]
