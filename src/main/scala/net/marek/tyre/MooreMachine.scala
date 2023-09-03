@@ -1,3 +1,5 @@
+package net.marek.tyre
+
 sealed trait Routine[IS <: Tuple, OS <: Tuple]:
   def execOn(stack: IS, c: Char): OS
 

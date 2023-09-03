@@ -1,3 +1,5 @@
+package net.marek.tyre
+
 // Type conventions and aliases
 
 // R - result type of parsing - parse tree shape

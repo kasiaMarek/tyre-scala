@@ -1,3 +1,5 @@
+package net.marek.tyre
+
 import org.scalatest.funsuite.AnyFunSuite
 import Re.char
 

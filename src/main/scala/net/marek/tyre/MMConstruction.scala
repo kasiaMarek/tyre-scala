@@ -1,3 +1,5 @@
+package net.marek.tyre
+
 import scala.quoted.runtime.Patterns.fromAbove
 class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
   import context._

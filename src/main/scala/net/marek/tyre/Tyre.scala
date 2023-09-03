@@ -1,3 +1,5 @@
+package net.marek.tyre
+
 // Tyre
 sealed trait Tyre[R]:
   def rep = Star(this)
