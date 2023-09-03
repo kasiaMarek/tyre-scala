@@ -2,7 +2,6 @@ package net.marek.tyre
 
 import scala.language.implicitConversions
 import scala.quoted.{Expr, Quotes, Type, Varargs, quotes}
-import scala.compiletime.error
 
 extension (inline sc: StringContext)
   transparent inline def tyre(inline args: Any*) = ${ tyreImpl('{ sc }, '{ args }) }

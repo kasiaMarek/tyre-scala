@@ -1,9 +1,6 @@
 package net.marek.tyre
 
-import scala.util.parsing.combinator.{Parsers, RegexParsers}
-import scala.util.parsing.input.{Position, Reader}
-import scala.sys.process.Parser
-import scala.compiletime.ops.any
+import scala.util.parsing.combinator.RegexParsers
 
 object TyreParser extends RegexParsers:
   private val star = literal("*")
