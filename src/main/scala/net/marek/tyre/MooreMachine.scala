@@ -1,10 +1,19 @@
 package net.marek.tyre
 
+/* Type parameters name conventions:
+R - result type of parsing - parse tree shape
+IS - input stack for routine
+OS - output stack of routine
+S - stack without input/output meaning
+E - single element on stack
+T - elementary TyRE type
+*/
+
 sealed trait Routine[IS <: Tuple, OS <: Tuple]:
   def execOn(stack: IS, c: Char): OS
 
-case object Empty extends Routine[Nix, Nix]:
-  def execOn(stack: Nix, c: Char): Nix = Tuple()
+case object Empty extends Routine[EmptyTuple, EmptyTuple]:
+  def execOn(stack: EmptyTuple, c: Char): EmptyTuple = Tuple()
 
 case class PushChar[IS <: Tuple]() extends Routine[IS, Char *: IS]:
   def execOn(stack: IS, c: Char): Char *: IS = c *: stack
