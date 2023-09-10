@@ -1,3 +1,5 @@
+package net.marek.tyre
+
 trait Machine[T]:
   def run(str: String): Option[T]
 

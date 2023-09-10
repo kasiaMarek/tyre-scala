@@ -1,5 +1,6 @@
-// To be replaced by regular logging library
+package net.marek.tyre
 
+// To be replaced by regular logging library
 trait Logger:
 	def log(info: String): Unit
 
