@@ -1,20 +1,29 @@
 package net.marek.tyre
 
-import scala.util.parsing.combinator.RegexParsers
+import scala.util.parsing.combinator.Parsers
+import scala.util.parsing.input.Reader
+import scala.util.parsing.input.Position
 
-object TyreParser extends RegexParsers:
-  private val star = literal("*")
-  private val or = literal("|")
-  private val lParen = literal("(")
-  private val rParen = literal(")")
-  private val lBracket = literal("[")
-  private val rBracket = literal("]")
-  private val dash = literal("-")
-  private val questionMark = literal("?")
-  private val escape = literal("""\""")
-  private val literal = regex("""[^*|()\\\]\[]""".r) ^^ { _.head }
+object TyreParser extends Parsers:
+  type Elem = Token
+  private val reservedChars = "*|()[]?\\-".toSet
+  private def accept(name: String, c: Char): Parser[Char] =
+    accept(name, { case `c` => c })
+  private val star: Parser[Char] = accept("star", '*')
+  private val or: Parser[Char] = accept("or", '|')
+  private val lParen: Parser[Char] = accept("lParen", '(')
+  private val rParen: Parser[Char] = accept("rParen", ')')
+  private val lBracket: Parser[Char] = accept("lBracket", '[')
+  private val rBracket: Parser[Char] = accept("rBracket", ']')
+  private val dash: Parser[Char] = accept("dash", '-')
+  private val questionMark: Parser[Char] = accept("questionMark", '?')
+  private val escape: Parser[Char] = accept("escape", '\\')
+  private val hole = accept("hole", { case Hole(idx) => idx })
+  private val literal: Parser[Char] =
+    accept("literal", { case el: Char if !reservedChars(el) => el }) |
+      escape ~> (star | or | lParen | rParen | escape | lBracket | rBracket | questionMark | dash)
   private val any =
-    escape ~> (star | or | lParen | rParen | escape | lBracket | rBracket) ^^ { s => ReOneOf(List(s.head)) }
+    hole ^^ ReHole.apply
       | lBracket ~> rep1(literal ~ opt(dash ~> literal)) <~ rBracket ^^ { list =>
         ReOneOf(list.flatMap {
           case li1 ~ None => List(li1)
@@ -28,7 +37,7 @@ object TyreParser extends RegexParsers:
     lParen ~> expr2 <~ rParen | any
 
   private val starOrQuestionMark: Parser[Boolean] =
-      star ^^ {_ => true} | questionMark ^^ {_ => false}
+    star ^^ { _ => true } | questionMark ^^ { _ => false }
 
   private val expr0: Parser[Re] =
     consumingExpr ~ opt(starOrQuestionMark) ^^ {
@@ -49,7 +58,26 @@ object TyreParser extends RegexParsers:
       case l ~ None => l
     }
 
-  def apply(input: String): Option[Re] =
-    parseAll(expr2, input) match
+  private val full: Parser[Re] = expr2 <~ End
+
+  def apply(input: List[Elem]): Option[Re] =
+    full(TokenReader(input :+ End)) match
       case Success(result, next) => Some(result)
       case _ => None
+
+class TokenReader(seq: Seq[Token]) extends Reader[Token]:
+  override def atEnd: Boolean = seq.isEmpty
+  override def first: Token = seq(0)
+  // TODO: implement position
+  override def pos: Position =
+    new Position {
+      override def line: Int = 0
+      override def column: Int = 0
+      override protected def lineContents: String = ""
+    }
+  override def rest: Reader[Token] = TokenReader(seq.tail)
+
+object End
+case class Hole(idx: Int)
+
+type Token = Char | Hole | End.type

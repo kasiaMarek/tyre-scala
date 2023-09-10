@@ -20,5 +20,8 @@ case class ReStar(re: Re) extends Re:
 case object ReEpsilon extends Re:
   override def toString(): String = "_"
 
+case class ReHole(index: Int) extends Re:
+  override def toString(): String = s"@$index"
+
 object Re:
   def char(c: Char): ReOneOf = ReOneOf(List(c))
