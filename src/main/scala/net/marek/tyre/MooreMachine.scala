@@ -33,11 +33,10 @@ class Context[R <: Tuple]:
 
   // given Logger = SimpleLogger
 
-  // --- states
+  // States
   sealed trait State[S <: Tuple]:
     val next: List[RoutineNextState[S]]
     def test(c : Char): Boolean
-    def id(s: S): S = s
 
   trait NonAcceptingState[S <: Tuple] extends State[S]
 
@@ -45,16 +44,11 @@ class Context[R <: Tuple]:
     val next: List[RoutineNextState[R]] = Nil
     def test(c: Char) = false
 
-  //--- routine next state
-  type RoutineNextState[IS <: Tuple] = Either[RoutineAcceptingNextState[IS], RoutineNonAcceptingNextState[IS]]
+  // Routines with next state
+  sealed trait RoutineNextState[IS <: Tuple]:
+    def thread(stack: IS, c: Char): Thread
 
-  extension[IS <: Tuple] (r: RoutineNextState[IS])
-    def thread(stack: IS, c: Char): Thread =
-      r match
-        case Left(r) => r.thread(stack, c)
-        case Right(r) => r.thread(stack, c)
-
-  trait RoutineNonAcceptingNextState[IS <: Tuple]:
+  trait RoutineNonAcceptingNextState[IS <: Tuple] extends RoutineNextState[IS]:
     self =>
     type OS <: Tuple
     lazy val routine: Routine[IS, OS]
@@ -66,7 +60,7 @@ class Context[R <: Tuple]:
         lazy val state = self.nextState
         lazy val stack = newStack
 
-  trait RoutineAcceptingNextState[IS <: Tuple]:
+  trait RoutineAcceptingNextState[IS <: Tuple] extends RoutineNextState[IS]:
     self =>
     lazy val routine: Routine[IS, R]
     def thread(stack: IS, c: Char): Thread =
@@ -76,24 +70,11 @@ class Context[R <: Tuple]:
         lazy val state = AcceptingState
         lazy val stack = newStack
 
-  //--- init states
-  type InitState[IS <: Tuple] = Either[InitAcceptingState[IS], InitNonAcceptingState[IS]]
+  // Init states
+  sealed trait InitState[IS <: Tuple]:
+    def thread(initStack: IS): Thread
 
-  extension[IS <: Tuple] (is: InitState[IS])
-    def thread(initStack: IS): Thread =
-      is match
-        case Right(is) => is.thread(initStack)
-        case Left(is) => is.thread(initStack)
-      
-
-  case class InitAcceptingState[IS <: Tuple](op: IS => R):
-    def thread(initStack: IS): Thread =
-      new Thread:
-        type S = R
-        lazy val state = AcceptingState
-        lazy val stack = op(initStack)
-
-  trait InitNonAcceptingState[IS <: Tuple]:
+  trait InitNonAcceptingState[IS <: Tuple] extends InitState[IS]:
     self =>
     type OS <: Tuple
     lazy val state: NonAcceptingState[OS]
@@ -104,6 +85,13 @@ class Context[R <: Tuple]:
         lazy val state = self.state
         lazy val stack = op(initStack)
 
+  case class InitAcceptingState[IS <: Tuple](op: IS => R) extends InitState[IS]:
+    def thread(initStack: IS): Thread =
+      new Thread:
+        type S = R
+        lazy val state = AcceptingState
+        lazy val stack = op(initStack)
+
   trait Thread:
     type S <: Tuple
     lazy val state: State[S]
@@ -112,10 +100,9 @@ class Context[R <: Tuple]:
       if(state.test(c))
       then state.next.map(_.thread(stack, c))
       else Nil
-    def getIfAccepting: Option[R] =
-      state match
-        case AcceptingState => Some(AcceptingState.id(stack))
-        case _ => None
+    def getIfAccepting: Option[R] = state match
+      case AcceptingState => Some(stack)
+      case _ => None
 
   trait MooreMachine[IS <: Tuple]:
     val initStates: List[InitState[IS]]
