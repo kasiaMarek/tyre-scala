@@ -57,4 +57,5 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
         case '{ $ree: Tyre[t1] } => '{ Star(${ ree }) }
     case ReHole(i) => tyreArgs(i)
 
-  toTyre(re)
+  toTyre(re) match
+    case '{ $re: Tyre[t] } => '{ ${ re }.asInstanceOf[Tyre[t]] }

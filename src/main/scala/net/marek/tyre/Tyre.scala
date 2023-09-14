@@ -3,9 +3,9 @@ package net.marek.tyre
 // Tyre
 sealed trait Tyre[R]:
   def rep: Star[R] = Star(this)
-  def <*>[S](re: Tyre[S]): And[R, S] = And(this, re)
-  def <|>[S](re: Tyre[S]): Or[R, S] = Or(this, re)
-  def map[S](f: R => S): Conv[R, S] = Conv(this, f)
+  def <*>[S](re: Tyre[S]): Tyre[(R, S)] = And(this, re)
+  def <|>[S](re: Tyre[S]): Tyre[Either[R,S]] = Or(this, re)
+  def map[S](f: R => S): Tyre[S] = Conv(this, f)
 
 case class OneOf(cs: List[Char]) extends Tyre[Char]:
   override def toString(): String = cs match
