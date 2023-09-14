@@ -42,7 +42,7 @@ object TyreParser extends Parsers:
   private val expr0: Parser[Re] =
     consumingExpr ~ opt(starOrQuestionMark) ^^ {
       case r ~ Some(true) => ReStar(r)
-      case r ~ Some(false) => ReOr(r, ReEpsilon)
+      case r ~ Some(false) => ReOpt(r)
       case r ~ None => r
     }
 

@@ -19,7 +19,7 @@ class StringParserTest extends AnyFunSuite:
     assertParses("x|y", ReOr(char('x'), char('y')))
     assertParses("(x|y)", ReOr(char('x'), char('y')))
     assertParses("x*", ReStar(char('x')))
-    assertParses("x?", ReOr(char('x'), ReEpsilon))
+    assertParses("x?", ReOpt(char('x')))
     assertParses("(x(y|a))b", ReAnd(ReAnd(char('x'), ReOr(char('y'), char('a'))), char('b')))
     assertParses("xy|a", ReOr(ReAnd(char('x'), char('y')), char('a')))
     assertParses("x|ya", ReOr(char('x'), ReAnd(char('y'), char('a'))))
@@ -36,10 +36,15 @@ class StringParserTest extends AnyFunSuite:
     assertDoesNotCompile("""tyre"x|*"""")
     val t = tyre"a|b".map(_ => 'o')
     val t2 = tyre"${t}|lpk"
-    assert(t2.isInstanceOf[Tyre[Either[Char,(Char, (Char, Char))]]])
+    assert(t2.isInstanceOf[Tyre[Either[Char, (Char, (Char, Char))]]])
+    val h = tyre"a?"
+    val m = h.compile()
+    assertResult(Some(Some('a')))(m.run("a"))
+    assertResult(Some(None))(m.run(""))
+    assertResult(None)(m.run("aa"))
 
   def tokenize(str: String): List[Token] =
-    str.toList.zipWithIndex.map{
+    str.toList.zipWithIndex.map {
       case ('@', idx) => Hole(idx)
       case (e, _) => e
     }

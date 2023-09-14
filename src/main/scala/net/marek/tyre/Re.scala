@@ -17,6 +17,9 @@ case class ReAnd(left: Re, right: Re) extends Re:
 case class ReStar(re: Re) extends Re:
   override def toString(): String = s"$re*"
 
+case class ReOpt(re: Re) extends Re:
+  override def toString(): String = s"$re?"
+
 case object ReEpsilon extends Re:
   override def toString(): String = "_"
 
