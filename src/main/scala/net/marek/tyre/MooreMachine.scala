@@ -35,20 +35,20 @@ class Context[R <: Tuple]:
 
   // States
   sealed trait State[S <: Tuple]:
-    val next: List[RoutineNextState[S]]
+    val next: List[Transition[S]]
     def test(c : Char): Boolean
 
   trait NonAcceptingState[S <: Tuple] extends State[S]
 
   object AcceptingState extends State[R]:
-    val next: List[RoutineNextState[R]] = Nil
+    val next: List[Transition[R]] = Nil
     def test(c: Char) = false
 
-  // Routines with next state
-  sealed trait RoutineNextState[IS <: Tuple]:
+  // Transitions to next state, performing routines
+  sealed trait Transition[IS <: Tuple]:
     def thread(stack: IS, c: Char): Thread
 
-  trait RoutineNonAcceptingNextState[IS <: Tuple] extends RoutineNextState[IS]:
+  trait NonAcceptingTransition[IS <: Tuple] extends Transition[IS]:
     self =>
     type OS <: Tuple
     lazy val routine: Routine[IS, OS]
@@ -60,7 +60,7 @@ class Context[R <: Tuple]:
         lazy val state = self.nextState
         lazy val stack = newStack
 
-  trait RoutineAcceptingNextState[IS <: Tuple] extends RoutineNextState[IS]:
+  trait AcceptingTransition[IS <: Tuple] extends Transition[IS]:
     self =>
     lazy val routine: Routine[IS, R]
     def thread(stack: IS, c: Char): Thread =
