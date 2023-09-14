@@ -6,10 +6,10 @@ import Re.char
 class StringParserTest extends AnyFunSuite:
 
   def assertDoesNotParse(pattern: String) =
-    assert(TyreParser(pattern).isEmpty)
+    assert(TyreParser(tokenize(pattern)).isEmpty)
 
   def assertParses(pattern: String, result: Re) =
-    assertResult(Some(result), pattern)(TyreParser(pattern))
+    assertResult(Some(result), pattern)(TyreParser(tokenize(pattern)))
 
   test("Simple parser"):
     assertDoesNotParse("")
@@ -29,7 +29,17 @@ class StringParserTest extends AnyFunSuite:
     assertParses("x\\)", ReAnd(char('x'), char(')')))
     assertParses("x*\\*y\\\\", ReAnd(ReStar(char('x')), ReAnd(char('*'), ReAnd(char('y'), char('\\')))))
     assertParses("[s-v]", ReOneOf(List('s', 't', 'u', 'v')))
+    assertParses("@|l", ReOr(ReHole(0), char('l')))
     assertDoesNotParse("x)y")
     assertDoesNotParse("x|*")
     assertCompiles("""tyre"x"""")
     assertDoesNotCompile("""tyre"x|*"""")
+    val t = tyre"a|b".map(_ => 'o')
+    val t2 = tyre"${t}|lpk"
+    assert(t2.isInstanceOf[Tyre[Either[Char,(Char, (Char, Char))]]])
+
+  def tokenize(str: String): List[Token] =
+    str.toList.zipWithIndex.map{
+      case ('@', idx) => Hole(idx)
+      case (e, _) => e
+    }
