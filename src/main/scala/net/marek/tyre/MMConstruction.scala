@@ -2,7 +2,7 @@ package net.marek.tyre
 
 class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
   import context._
-  
+
   // given Logger = SimpleLogger
 
   def compile[IS <: Tuple, T](tyre: Tyre[T], mm: MooreMachine[T *: IS]): MooreMachine[IS] = tyre match
@@ -93,7 +93,7 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
     val iss: List[InitState[T2 *: IS]] =
       mm.initStates.map:
         case is: InitAcceptingState[?] =>
-          def op(x : T2 *: IS) = is.op(f(x.head) *: x.tail)
+          def op(x: T2 *: IS) = is.op(f(x.head) *: x.tail)
           InitAcceptingState(op)
         case is: InitNonAcceptingState[?] =>
           new InitNonAcceptingState[T2 *: IS]:
@@ -110,7 +110,6 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
     def mmLoop(
       mm: MooreMachine[List[T] *: IS]
     ): MooreMachine[IS] =
-
       new MooreMachine[IS]:
         Logger.log("mmLoop new MooreMachine")
         val initStates =
@@ -126,17 +125,17 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
                     val next: List[Transition[OS]] = is.state.next.flatMap(fixState[is.OS](initStates, mm, _))
                     def test(c: Char): Boolean = is.state.test(c)
                   val op = x => Nil *: is.op(x)
-          ++
-          mm.initStates.map:
-            case is: InitAcceptingState[?] =>
-              Logger.log("mmLoop new InitAcceptingState")
-              new InitAcceptingState((x: IS) => is.op(Nil *: x))
-            case is: InitNonAcceptingState[?] =>
-              new InitNonAcceptingState[IS]:
-                Logger.log("mmLoop new InitNonAcceptingState")
-                type OS = is.OS
-                lazy val state = is.state
-                val op = x => is.op(Nil *: x)
+            ++
+              mm.initStates.map:
+                case is: InitAcceptingState[?] =>
+                  Logger.log("mmLoop new InitAcceptingState")
+                  new InitAcceptingState((x: IS) => is.op(Nil *: x))
+                case is: InitNonAcceptingState[?] =>
+                  new InitNonAcceptingState[IS]:
+                    Logger.log("mmLoop new InitNonAcceptingState")
+                    type OS = is.OS
+                    lazy val state = is.state
+                    val op = x => is.op(Nil *: x)
 
     private def fixState[S <: Tuple](
       initStates: List[InitState[IS]],
@@ -147,7 +146,7 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
       Logger.log("fixing state")
       rns0 match
         case rns: context.AcceptingTransition[?] =>
-          mm.initStates.map:
+          val mmIS = mm.initStates.map:
             case is: InitAcceptingState[?] =>
               new AcceptingTransition[List[T] *: S]:
                 Logger.log("fix state new AcceptingTransition mm")
@@ -168,8 +167,7 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
                       case l *: e *: t => is.op((l :+ e) *: t)
                   )
                 lazy val nextState: NonAcceptingState[OS] = is.state
-          ++
-          initStates.map:
+          val mmEIS = initStates.map:
             case is: InitAcceptingState[?] =>
               new AcceptingTransition[List[T] *: S]:
                 Logger.log("fix state new AcceptingTransition initStates")
@@ -177,8 +175,9 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
                   Compose[List[T] *: S, List[T] *: T *: IS, R *: IN](
                     OnTail(rns.routine),
                     Transform:
-                      case l *: e *: t => is.op(t) match
-                        case _ *: tt => ((l :+ e).asInstanceOf[R] *: tt)
+                      case l *: e *: t =>
+                        is.op(t) match
+                          case _ *: tt => (l :+ e).asInstanceOf[R] *: tt
                   )
             case is: InitNonAcceptingState[?] =>
               new NonAcceptingTransition[List[T] *: S]:
@@ -188,10 +187,12 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
                   Compose[List[T] *: S, List[T] *: T *: IS, OS](
                     OnTail(rns.routine),
                     Transform:
-                      case l *: e *: t => (is.op(t): @unchecked) match
-                        case _ *: tt => ((l :+ e) *: tt).asInstanceOf[OS]
+                      case l *: e *: t =>
+                        (is.op(t): @unchecked) match
+                          case _ *: tt => ((l :+ e) *: tt).asInstanceOf[OS]
                   )
                 lazy val nextState: NonAcceptingState[OS] = is.state
+          mmIS ++ mmEIS
         case rns: context.NonAcceptingTransition[?] =>
           lazy val res: List[Transition[List[T] *: S]] = List:
             new NonAcceptingTransition[List[T] *: S]:
@@ -223,10 +224,9 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
       def from: context.Transition[B]
       def to: List[Transition[List[T] *: B]]
 
-    extension(alreadyFixed: List[AlreadyFixedStateMapping])
+    extension (alreadyFixed: List[AlreadyFixedStateMapping])
       def getOrElse[A <: Tuple](
         ns: context.Transition[A],
         res: => List[Transition[List[T] *: A]]
       ): List[Transition[List[T] *: A]] =
         alreadyFixed.collectFirst(_.get(ns) match { case Some(v) => v }).getOrElse(res)
-

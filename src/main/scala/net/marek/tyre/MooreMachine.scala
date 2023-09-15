@@ -7,7 +7,7 @@ OS - output stack of routine
 S - stack without input/output meaning
 E - single element on stack
 T - elementary TyRE type
-*/
+ */
 
 sealed trait Routine[IS <: Tuple, OS <: Tuple]:
   def execOn(stack: IS, c: Char): OS
@@ -19,7 +19,7 @@ case class PushChar[IS <: Tuple]() extends Routine[IS, Char *: IS]:
   def execOn(stack: IS, c: Char): Char *: IS = c *: stack
 
 case class Transform[IS <: Tuple, OS <: Tuple](op: IS => OS) extends Routine[IS, OS]:
-  def execOn(stack: IS, c : Char): OS = op(stack)
+  def execOn(stack: IS, c: Char): OS = op(stack)
 
 case class Compose[IS <: Tuple, S <: Tuple, OS <: Tuple](r1: Routine[IS, S], r2: Routine[S, OS])
   extends Routine[IS, OS]:
@@ -36,7 +36,7 @@ class Context[R <: Tuple]:
   // States
   sealed trait State[S <: Tuple]:
     val next: List[Transition[S]]
-    def test(c : Char): Boolean
+    def test(c: Char): Boolean
 
   trait NonAcceptingState[S <: Tuple] extends State[S]
 
@@ -97,7 +97,7 @@ class Context[R <: Tuple]:
     lazy val state: State[S]
     lazy val stack: S
     def next(c: Char): List[Thread] =
-      if(state.test(c))
+      if state.test(c)
       then state.next.map(_.thread(stack, c))
       else Nil
     def getIfAccepting: Option[R] = state match
@@ -111,6 +111,9 @@ class Context[R <: Tuple]:
         Logger.log(s"word: $word, threads: ${threads.size}")
         word match
           case c :: rest => parseRec(rest, threads.flatMap(_.next(c)).distinctBy(_.state))
-          case Nil => threads.map(_.getIfAccepting).collectFirst:
-            case Some(value) => value
+          case Nil =>
+            threads
+              .map(_.getIfAccepting)
+              .collectFirst:
+                case Some(value) => value
       parseRec(word, initStates.map(_.thread(initStack)))
