@@ -1,0 +1,28 @@
+name: Continuous integration
+on: [push, pull_request]
+
+jobs:
+
+  validate:
+    name: Compile and test
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout current branch
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        id: setup-java
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: temurin
+          cache: sbt
+
+      - name: Update sbt
+        if: steps.setup-java.outputs.cache-hit == 'false'
+        run: sbt +update
+
+      - name: Compile, check formatting and test
+        run: sbt validate

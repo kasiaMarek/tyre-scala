@@ -1,7 +1,7 @@
 .*
 !.gitignore
 !.scalafmt.conf
-!.scalafix.conf
+!.github/
 target/
 project/target/
 project/project/

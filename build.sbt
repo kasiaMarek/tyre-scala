@@ -5,10 +5,10 @@ lazy val basicSettings = Seq(
   startYear := Some(2023),
   name := "tyre-scala",
   description := "Typed regex parser",
-  scalaVersion := "3.3.0"
+  scalaVersion := "3.3.1"
 )
 
-addCommandAlias("check", "; scalafmtCheck ; scalafix --check")
+addCommandAlias("validate", "; compile; Test/compile; scalafmtCheck; test")
 
 lazy val root = (project in file("."))
   .settings(basicSettings: _*)
