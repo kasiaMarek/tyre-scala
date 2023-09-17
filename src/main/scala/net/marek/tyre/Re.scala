@@ -11,6 +11,9 @@ case class ReOneOf(cs: List[Char]) extends Re:
 case class ReOr(left: Re, right: Re) extends Re:
   override def toString(): String = s"($left|$right)"
 
+case class ReOrS(left: Re, right: Re) extends Re:
+  override def toString(): String = s"($left||$right)"
+
 case class ReAnd(left: Re, right: Re) extends Re:
   override def toString(): String = s"($left$right)"
 

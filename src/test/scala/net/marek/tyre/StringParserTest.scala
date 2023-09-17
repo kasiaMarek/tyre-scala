@@ -1,9 +1,9 @@
 package net.marek.tyre
 
 import org.scalatest.funsuite.AnyFunSuite
-import Re.char
 import java.time.LocalTime
 import scala.annotation.unused
+import Re.char
 
 class StringParserTest extends AnyFunSuite:
 
@@ -19,6 +19,7 @@ class StringParserTest extends AnyFunSuite:
     assertParses("(x)", char('x'))
     assertParses("xy", ReAnd(char('x'), char('y')))
     assertParses("x|y", ReOr(char('x'), char('y')))
+    assertParses("x||y", ReOrS(char('x'), char('y')))
     assertParses("(x|y)", ReOr(char('x'), char('y')))
     assertParses("x*", ReStar(char('x')))
     assertParses("x?", ReOpt(char('x')))
@@ -26,6 +27,7 @@ class StringParserTest extends AnyFunSuite:
     assertParses("xy|a", ReOr(ReAnd(char('x'), char('y')), char('a')))
     assertParses("x|ya", ReOr(char('x'), ReAnd(char('y'), char('a'))))
     assertParses("x(y|a)b", ReAnd(char('x'), ReAnd(ReOr(char('y'), char('a')), char('b'))))
+    assertParses("x(y||a)b", ReAnd(char('x'), ReAnd(ReOrS(char('y'), char('a')), char('b'))))
     assertParses("x|y*", ReOr(char('x'), ReStar(char('y'))))
     assertParses("(x*y)*", ReStar(ReAnd(ReStar(char('x')), char('y'))))
     assertParses("x\\)", ReAnd(char('x'), char(')')))
@@ -39,6 +41,7 @@ class StringParserTest extends AnyFunSuite:
     assertCompiles("""tyre"x"""")
     assertDoesNotCompile("""tyre"x|*"""")
     @unused val te: Tyre[Char] = tyre"a|b"
+    @unused val tes: Tyre[Either[Char, Char]] = tyre"a||b"
     val tm = tyre"a|b".map(_ => 'o')
     @unused val t: Tyre[Either[Char, (Char, Char, Char)]] = tyre"${tm}|lpk"
     val to = tyre"a?"

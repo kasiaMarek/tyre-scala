@@ -11,6 +11,7 @@ object TyreParser extends Parsers:
     accept(name, { case `c` => c })
   private val star: Parser[Char] = accept("star", '*')
   private val or: Parser[Char] = accept("or", '|')
+  private val orS = or ~ or
   private val lParen: Parser[Char] = accept("lParen", '(')
   private val rParen: Parser[Char] = accept("rParen", ')')
   private val lBracket: Parser[Char] = accept("lBracket", '[')
@@ -52,9 +53,13 @@ object TyreParser extends Parsers:
       case l ~ None => l
     }
 
+  private val strictOrMergingOr: Parser[Boolean] =
+    orS ^^ { _ => true } | or ^^ { _ => false }
+
   private val expr2: Parser[Re] =
-    expr1 ~ opt(or ~> expr2) ^^ {
-      case l ~ Some(r) => ReOr(l, r)
+    expr1 ~ opt(strictOrMergingOr ~ expr2) ^^ {
+      case l ~ Some(true ~ r) => ReOrS(l, r)
+      case l ~ Some(false ~ r) => ReOr(l, r)
       case l ~ None => l
     }
 
