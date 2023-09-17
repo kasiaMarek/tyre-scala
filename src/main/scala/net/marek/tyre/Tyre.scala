@@ -1,5 +1,7 @@
 package net.marek.tyre
 
+import scala.util.Either.MergeableEither
+
 // Tyre
 sealed trait Tyre[R]:
   def rep: Star[R] = Star(this)
@@ -33,6 +35,14 @@ object Opt:
       case Left(v) => Some(v)
       case _ => None
     Conv(Or(re, Epsilon), conv)
+
+object OrM:
+  def apply[R](left: Tyre[R], right: Tyre[R]): Tyre[R] =
+    Conv(Or(left, right), _.merge)
+
+object AndF:
+  def apply[R1, R2, R3](left: Tyre[R1], right: Tyre[(R2, R3)]): Tyre[(R1, R2, R3)] =
+    Conv(And(left, right), (l, r) => (l, r(0), r(1)))
 
 object Tyre:
   def char(c: Char): OneOf = OneOf(List(c))

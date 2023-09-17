@@ -38,9 +38,9 @@ class StringParserTest extends AnyFunSuite:
   test("Tyre construction"):
     assertCompiles("""tyre"x"""")
     assertDoesNotCompile("""tyre"x|*"""")
-    @unused val te: Tyre[Either[Char,Char]] = tyre"a|b"
+    @unused val te: Tyre[Char] = tyre"a|b"
     val tm = tyre"a|b".map(_ => 'o')
-    @unused val t: Tyre[Either[Char, (Char, (Char, Char))]] = tyre"${tm}|lpk"
+    @unused val t: Tyre[Either[Char, (Char, Char, Char)]] = tyre"${tm}|lpk"
     val to = tyre"a?"
     val m = to.compile()
     assertResult(Some(Some('a')))(m.run("a"))
@@ -52,12 +52,10 @@ class StringParserTest extends AnyFunSuite:
     def decimal(c: Char, p: Int): Int = digit(c)*10.pow(p)
     def number(cs: Char*): Int =
       cs.reverse.zipWithIndex.map(decimal(_, _)).sum
-    val ht = tyre"[0-1][0-9]|2[0-3]".map: e =>
-      val (h10, h1) = e.merge
-      number(h10, h1)
+    val ht = tyre"[0-1][0-9]|2[0-3]".map(number(_, _))
     val mt = tyre"[0-5][0-9]".map(number(_, _))
     val tt = tyre"$ht:$mt".map: t =>
-      val (h, (_, m)) = t
+      val (h, _, m) = t
       LocalTime.of(h, m)
     val tm = tt.compile()
     val time = tm.run("21:25")

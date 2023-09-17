@@ -46,11 +46,13 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
       toTyre(re1) match
         case '{ $ree1: Tyre[t1] } =>
           toTyre(re2) match
+            case '{ $ree2: Tyre[(t2, t3)] } => '{ AndF(${ ree1 }, ${ ree2 }) }
             case '{ $ree2: Tyre[t2] } => '{ And(${ ree1 }, ${ ree2 }) }
     case ReOr(re1, re2) =>
       toTyre(re1) match
         case '{ $ree1: Tyre[t1] } =>
           toTyre(re2) match
+            case '{ $ree2: Tyre[`t1`] } => '{ OrM(${ ree1 }, ${ ree2 }) }
             case '{ $ree2: Tyre[t2] } => '{ Or(${ ree1 }, ${ ree2 }) }
     case ReStar(re) =>
       toTyre(re) match
