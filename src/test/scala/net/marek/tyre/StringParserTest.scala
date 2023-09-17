@@ -3,6 +3,7 @@ package net.marek.tyre
 import org.scalatest.funsuite.AnyFunSuite
 import Re.char
 import java.time.LocalTime
+import scala.annotation.unused
 
 class StringParserTest extends AnyFunSuite:
 
@@ -33,13 +34,15 @@ class StringParserTest extends AnyFunSuite:
     assertParses("@|l", ReOr(ReHole(0), char('l')))
     assertDoesNotParse("x)y")
     assertDoesNotParse("x|*")
+
+  test("Tyre construction"):
     assertCompiles("""tyre"x"""")
     assertDoesNotCompile("""tyre"x|*"""")
-    val t = tyre"a|b".map(_ => 'o')
-    val t2 = tyre"${t}|lpk"
-    assert(t2.isInstanceOf[Tyre[Either[Char, (Char, (Char, Char))]]])
-    val h = tyre"a?"
-    val m = h.compile()
+    @unused val te: Tyre[Either[Char,Char]] = tyre"a|b"
+    val tm = tyre"a|b".map(_ => 'o')
+    @unused val t: Tyre[Either[Char, (Char, (Char, Char))]] = tyre"${tm}|lpk"
+    val to = tyre"a?"
+    val m = to.compile()
     assertResult(Some(Some('a')))(m.run("a"))
     assertResult(Some(None))(m.run(""))
     assertResult(None)(m.run("aa"))
