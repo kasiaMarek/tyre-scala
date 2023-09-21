@@ -1,6 +1,7 @@
 package net.marek.tyre
 
 import org.scalatest.funsuite.AnyFunSuite
+
 import Pred.given
 
 class MachineTest extends AnyFunSuite:

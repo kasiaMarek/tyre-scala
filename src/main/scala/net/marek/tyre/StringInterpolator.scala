@@ -1,7 +1,9 @@
 package net.marek.tyre
 
-import scala.language.implicitConversions
-import scala.quoted.{quotes, Expr, Quotes, Type, Varargs}
+import scala.quoted.Expr
+import scala.quoted.Quotes
+import scala.quoted.Varargs
+import scala.quoted.quotes
 
 extension (inline sc: StringContext) transparent inline def tyre(inline args: Any*) = ${ tyreImpl('{ sc }, '{ args }) }
 

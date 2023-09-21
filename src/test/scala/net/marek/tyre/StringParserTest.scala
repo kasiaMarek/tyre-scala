@@ -1,8 +1,10 @@
 package net.marek.tyre
 
 import org.scalatest.funsuite.AnyFunSuite
+
 import java.time.LocalTime
 import scala.annotation.unused
+
 import Re.char
 
 class StringParserTest extends AnyFunSuite:

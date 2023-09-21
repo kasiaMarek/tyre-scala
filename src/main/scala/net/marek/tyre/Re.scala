@@ -4,16 +4,18 @@ package net.marek.tyre
 sealed trait Re
 
 case class ReIn(cs: List[Range]) extends Re:
-  override def toString(): String = cs.map:
-    case Range(x, y) if x == y => x.toString()
-    case Range(x, y) => s"$x-$y"
-  .mkString("[","","]")
+  override def toString(): String = cs
+    .map:
+      case Range(x, y) if x == y => x.toString()
+      case Range(x, y) => s"$x-$y"
+    .mkString("[", "", "]")
 
 case class ReNotIn(cs: List[Range]) extends Re:
-  override def toString(): String = cs.map:
-    case Range(x, y) if x == y => x.toString()
-    case Range(x, y) => s"$x-$y"
-  .mkString("[^","","]")
+  override def toString(): String = cs
+    .map:
+      case Range(x, y) if x == y => x.toString()
+      case Range(x, y) => s"$x-$y"
+    .mkString("[^", "", "]")
 
 case class ReOr(left: Re, right: Re) extends Re:
   override def toString(): String = s"($left|$right)"

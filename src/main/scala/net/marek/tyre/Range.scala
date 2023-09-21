@@ -1,6 +1,8 @@
 package net.marek.tyre
 
-import scala.quoted.{Expr, Quotes, ToExpr}
+import scala.quoted.Expr
+import scala.quoted.Quotes
+import scala.quoted.ToExpr
 
 case class Range(from: Char, to: Char)
 
@@ -9,4 +11,4 @@ object Range:
 
 given ToExpr[Range] with
   def apply(r: Range)(using Quotes) = r match
-    case Range(from, to) => '{Range( ${Expr(from)}, ${Expr(to)})}
+    case Range(from, to) => '{ Range(${ Expr(from) }, ${ Expr(to) }) }
