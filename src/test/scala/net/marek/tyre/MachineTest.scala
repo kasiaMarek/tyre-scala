@@ -1,31 +1,31 @@
 package net.marek.tyre
 
 import org.scalatest.funsuite.AnyFunSuite
-import Tyre.given
+import Pred.given
 
 class MachineTest extends AnyFunSuite:
 
 	test("Simple Pred"):
-		val tyre = OneOf(List('A'))
+		val tyre = 'A'
 		val m = tyre.compile()
 		assert(m.run("A").contains('A'))
 		assert(m.run("X").isEmpty)
 
 	test("Simple And"):
-		val tyre = And(OneOf(List('A')), OneOf(List('B')))
+		val tyre = 'A' <*> 'B'
 		val m = tyre.compile()
 		assert(m.run("AB").contains(('A', 'B')))
 		assert(m.run("BA").isEmpty)
 
 	test("Simple Or"):
-		val tyre = Or(OneOf(List('A')), OneOf(List('B')))
+		val tyre = 'A' <|> 'B'
 		val m = tyre.compile()
 		assert(m.run("A").contains(Left('A')))
 		assert(m.run("B").contains(Right('B')))
 		assert(m.run("X").isEmpty)
 
 	test("Simple Star"):
-		val tyre = Star(OneOf(List('A')))
+		val tyre = 'A'.rep
 		val m = tyre.compile()
 		assert(m.run("A").contains(List('A')))
 		assert(m.run("AA").contains(List('A', 'A')))

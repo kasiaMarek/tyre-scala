@@ -19,20 +19,26 @@ object TyreParser extends Parsers:
   private val dash: Parser[Char] = accept("dash", '-')
   private val questionMark: Parser[Char] = accept("questionMark", '?')
   private val escape: Parser[Char] = accept("escape", '\\')
+  private val caret: Parser[Char] = accept("caret", '^')
   private val hole = accept("hole", { case Hole(idx) => idx })
   private val literal: Parser[Char] =
     accept("literal", { case el: Char if !reservedChars(el) => el }) |
-      escape ~> (star | or | lParen | rParen | escape | lBracket | rBracket | questionMark | dash)
+      escape ~> (star | or | lParen | rParen | escape | lBracket | rBracket | questionMark | dash | caret)
   private val any =
     hole ^^ ReHole.apply
-      | lBracket ~> rep1(literal ~ opt(dash ~> literal)) <~ rBracket ^^ { list =>
-        ReOneOf(list.flatMap {
-          case li1 ~ None => List(li1)
-          case start ~ Some(end) =>
-            (start to end).toList
-        })
+      | lBracket ~> opt(caret) ~ rep1(literal ~ opt(dash ~> literal)) <~ rBracket ^^ {
+        case Some(_) ~ list =>
+          ReNotIn(list.map {
+            case li1 ~ None => Range(li1, li1)
+            case start ~ Some(end) => Range(start, end)
+          })
+        case None ~ list =>
+          ReIn(list.map {
+            case li1 ~ None => Range(li1, li1)
+            case start ~ Some(end) => Range(start, end)
+          })
       }
-      | literal ^^ { e => ReOneOf(List(e)) }
+      | literal ^^ { e => Re.char(e) }
 
   private val consumingExpr: Parser[Re] =
     lParen ~> expr2 <~ rParen | any

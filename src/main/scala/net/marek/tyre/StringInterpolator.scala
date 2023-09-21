@@ -41,7 +41,8 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
 
   def toTyre(re: Re)(using Quotes): Expr[Tyre[?]] = re match
     case ReEpsilon => '{ Epsilon }
-    case ReOneOf(cs) => '{ OneOf(${ Expr(cs) }) }
+    case ReIn(cs) => '{ Pred.in(${ Expr(cs) }) }
+    case ReNotIn(cs) => '{ Pred.notIn(${ Expr(cs) }) }
     case ReAnd(re1, re2) =>
       toTyre(re1) match
         case '{ $ree1: Tyre[t1] } =>

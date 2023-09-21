@@ -7,10 +7,10 @@ import Re.char
 
 class StringParserTest extends AnyFunSuite:
 
-  def assertDoesNotParse(pattern: String) =
+  inline def assertDoesNotParse(pattern: String) =
     assert(TyreParser(tokenize(pattern)).isEmpty)
 
-  def assertParses(pattern: String, result: Re) =
+  inline def assertParses(pattern: String, result: Re) =
     assertResult(Some(result), pattern)(TyreParser(tokenize(pattern)))
 
   test("Simple parser"):
@@ -32,7 +32,9 @@ class StringParserTest extends AnyFunSuite:
     assertParses("(x*y)*", ReStar(ReAnd(ReStar(char('x')), char('y'))))
     assertParses("x\\)", ReAnd(char('x'), char(')')))
     assertParses("x*\\*y\\\\", ReAnd(ReStar(char('x')), ReAnd(char('*'), ReAnd(char('y'), char('\\')))))
-    assertParses("[s-v]", ReOneOf(List('s', 't', 'u', 'v')))
+    assertParses("[s-v]", ReIn(List(Range('s', 'v'))))
+    assertParses("[abs-vz]", ReIn(List(Range('a'), Range('b'), Range('s', 'v'), Range('z'))))
+    assertParses("[^s-v]", ReNotIn(List(Range('s', 'v'))))
     assertParses("@|l", ReOr(ReHole(0), char('l')))
     assertDoesNotParse("x)y")
     assertDoesNotParse("x|*")
