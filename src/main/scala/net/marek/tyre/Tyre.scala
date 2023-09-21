@@ -44,6 +44,6 @@ object OrM:
     Conv(Or(left, right), _.merge)
 
 object AndF:
-  def apply[R1, R2, R3](left: Tyre[R1], right: Tyre[(R2, R3)]): Tyre[(R1, R2, R3)] =
-    Conv(And(left, right), (l, r) => (l, r(0), r(1)))
+  def apply[R, RT <: Tuple](left: Tyre[R], right: Tyre[RT]): Tyre[R *: RT] =
+    Conv(And(left, right), (l, r) => l *: r)
 

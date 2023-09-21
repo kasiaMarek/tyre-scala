@@ -44,6 +44,7 @@ class StringParserTest extends AnyFunSuite:
     assertDoesNotCompile("""tyre"x|*"""")
     @unused val te: Tyre[Char] = tyre"a|b"
     @unused val tes: Tyre[Either[Char, Char]] = tyre"a||b"
+    @unused val tt: Tyre[(Char, Char, Char, Char, Char)] = tyre"abcde"
     val tm = tyre"a|b".map(_ => 'o')
     @unused val t: Tyre[Either[Char, (Char, Char, Char)]] = tyre"${tm}|lpk"
     val to = tyre"a?"
