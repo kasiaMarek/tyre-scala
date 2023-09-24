@@ -7,10 +7,7 @@ sealed trait Tyre[R]:
   def <|>[S](re: Tyre[S]): Tyre[Either[R, S]] = Or(this, re)
   def map[S](f: R => S): Tyre[S] = Conv(this, f)
 
-case class OneOf(cs: List[Char]) extends Tyre[Char]:
-  override def toString(): String = cs match
-    case c :: Nil => c.toString()
-    case list => s"[${list.sorted.mkString}]"
+case class Pred(f: Char => Boolean) extends Tyre[Char]
 
 case class Or[R1, R2](left: Tyre[R1], right: Tyre[R2]) extends Tyre[Either[R1, R2]]:
   override def toString(): String = s"($left|$right)"
@@ -27,6 +24,12 @@ case object Epsilon extends Tyre[Unit]:
 case class Conv[R1, R2](tyre: Tyre[R1], f: R1 => R2) extends Tyre[R2]:
   override def toString(): String = s"f($tyre)"
 
+object Pred:
+  def in(cs: List[Range]): Tyre[Char] = Pred(c => cs.exists(r => r.from <= c && r.to >= c))
+  def notIn(cs: List[Range]): Tyre[Char] = Pred(c => cs.forall(r => r.from > c || r.to < c))
+  def char(c: Char): Tyre[Char] = Pred(_ == c)
+  given Conversion[Char, Tyre[Char]] = char(_)
+
 object Opt:
   def apply[R](re: Tyre[R]): Tyre[Option[R]] =
     val conv: Either[R, Unit] => Option[R] =
@@ -34,6 +37,10 @@ object Opt:
       case _ => None
     Conv(Or(re, Epsilon), conv)
 
-object Tyre:
-  def char(c: Char): OneOf = OneOf(List(c))
-  given Conversion[Char, Tyre[Char]] = char(_)
+object OrM:
+  def apply[R](left: Tyre[R], right: Tyre[R]): Tyre[R] =
+    Conv(Or(left, right), _.merge)
+
+object AndF:
+  def apply[R, RT <: Tuple](left: Tyre[R], right: Tyre[RT]): Tyre[R *: RT] =
+    Conv(And(left, right), (l, r) => l *: r)

@@ -3,13 +3,25 @@ package net.marek.tyre
 // Re - untyped regular expression, used to buuld expressions from string representations
 sealed trait Re
 
-case class ReOneOf(cs: List[Char]) extends Re:
-  override def toString(): String = cs match
-    case c :: Nil => c.toString()
-    case list => s"[${list.sorted.mkString}]"
+case class ReIn(cs: List[Range]) extends Re:
+  override def toString(): String = cs
+    .map:
+      case Range(x, y) if x == y => x.toString()
+      case Range(x, y) => s"$x-$y"
+    .mkString("[", "", "]")
+
+case class ReNotIn(cs: List[Range]) extends Re:
+  override def toString(): String = cs
+    .map:
+      case Range(x, y) if x == y => x.toString()
+      case Range(x, y) => s"$x-$y"
+    .mkString("[^", "", "]")
 
 case class ReOr(left: Re, right: Re) extends Re:
   override def toString(): String = s"($left|$right)"
+
+case class ReOrS(left: Re, right: Re) extends Re:
+  override def toString(): String = s"($left||$right)"
 
 case class ReAnd(left: Re, right: Re) extends Re:
   override def toString(): String = s"($left$right)"
@@ -27,4 +39,4 @@ case class ReHole(index: Int) extends Re:
   override def toString(): String = s"@$index"
 
 object Re:
-  def char(c: Char): ReOneOf = ReOneOf(List(c))
+  def char(c: Char): ReIn = ReIn(List(Range(c, c)))
