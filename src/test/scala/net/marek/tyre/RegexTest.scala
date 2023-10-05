@@ -15,7 +15,8 @@ class RegexTest extends AnyFunSuite:
     val tm = tt.compile()
     val sample = "abc.xyz"
     // println(tm.getAll(sample))
-    println(tm.show(sample.toSet))
+    val renderer = GraphvizMachineRenderer()
+    println(tm.show(renderer, sample.toSet))
 
   test("Time parser"):
     val ht = tyre"[0-1][0-9]|2[0-3]".map(number(_, _))
