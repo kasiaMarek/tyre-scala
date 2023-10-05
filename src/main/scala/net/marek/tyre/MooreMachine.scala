@@ -112,7 +112,9 @@ class Context[R <: Tuple]:
       case _ => None
 
   trait MooreMachine[IS <: Tuple]:
+
     val initStates: List[InitState[IS]]
+
     def parseAll(initStack: IS, word: List[Char]): List[R] =
       def parseRec(word: List[Char], threads: List[Thread]): List[R] =
         Logger.log(s"word: $word, threads: ${threads.size}")
@@ -124,6 +126,7 @@ class Context[R <: Tuple]:
               .collect:
                 case Some(value) => value
       parseRec(word, initStates.map(_.thread(initStack)))
+
     def parse(initStack: IS, word: List[Char]): Option[R] =
       def parseRec(word: List[Char], threads: List[Thread]): Option[R] =
         Logger.log(s"word: $word, threads: ${threads.size}")
@@ -135,20 +138,19 @@ class Context[R <: Tuple]:
               .collectFirst:
                 case Some(value) => value
       parseRec(word, initStates.map(_.thread(initStack)))
-    def show(testChars: Set[Char]): String =
-      val sb = new java.lang.StringBuilder
+
+    def show(renderer: MachineRenderer, testChars: Set[Char]): String =
       val visited = mutable.Set.empty[State[?]]
       def loop(states: List[State[?]]): Unit =
         visited.addAll(states)
         val nextStates =
           states.flatMap: st =>
             st.next.map: nextState =>
-              sb.append(s"$st -> ${nextState.state}".replaceAll("[\\.\\$@]", "_"))
-              sb.append(s" [label = \"${testChars.filter(st.test(_)).mkString(", ")}\" ];\n")
+              renderer.add(st, nextState.state, testChars.filter(st.test))
               nextState.state
         nextStates.filterNot(visited(_)) match
           case Nil =>
           case some => loop(some)
-      initStates.foreach(st => sb.append(s"start -> ${st.state}\n".replaceAll("[\\.\\$@]", "_")))
+      initStates.foreach(st => renderer.add(st.state))
       loop(initStates.map(_.state))
-      sb.toString()
+      renderer.render

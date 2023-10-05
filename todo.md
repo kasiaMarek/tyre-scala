@@ -9,3 +9,4 @@ TODO
 - [ ] Support for singleton types
 - [ ] Helper functions for handling digits and numbers
 - [ ] Helper functions for working with strings (flatten chars structures)
+- [ ] Change context to be an implicit argument to all methods
