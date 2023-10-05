@@ -1,7 +1,7 @@
 TODO
 ----
 
-- [ ] ```java.lang.ClassCastException: class scala.collection.immutable.$colon$colon cannot be cast to class scala.Tuple3``` (MMConstruction.scala:103)
+- [X] ```java.lang.ClassCastException: class scala.collection.immutable.$colon$colon cannot be cast to class scala.Tuple3``` (MMConstruction.scala:103)
 - [ ] Handle `+` (at least one element)
 - [ ] Allow escaping all characters (including escaping in brackets)
 - [ ] Improve tyre map executions - limit them
