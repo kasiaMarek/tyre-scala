@@ -6,17 +6,13 @@ import java.time.LocalTime
 
 class RegexTest extends AnyFunSuite:
 
-  test("Star problem"):
+  test("Double star"):
     val t = tyre"[A-Za-z0-9_]"
-    val tt = tyre"($t*)*".map: x =>
-      //println(Thread.currentThread().getStackTrace().mkString("\n\t"))
-      println(x)
-      x
+    val tt = tyre"($t$t*)*".map(string) // doesn't make really sense, but covers a corner-case
     val tm = tt.compile()
-    val sample = "abc.xyz"
-    // println(tm.getAll(sample))
-    val renderer = GraphvizMachineRenderer()
-    println(tm.show(renderer, sample.toSet))
+    val result = tm.run("abbabb")
+    assertResult(Some("abbabb"))(result)
+    assertResult(None)(tm.run("-"))
 
   test("Time parser"):
     val ht = tyre"[0-1][0-9]|2[0-3]".map(number(_, _))
@@ -40,11 +36,6 @@ class RegexTest extends AnyFunSuite:
     val lddt = tyre"[A-Za-z0-9]"
     val ldt = tyre"[A-Za-z0-9]"
     val lt = tyre"[A-Za-z]"
-    // This causes exception - but shouldn't
-    // val ut = tyre"${lddut}${lddut}*(.${lddut}${lddut}*)*".map: t =>
-    //   val (t1, t2, t3) = t
-    //   val t3s = t3.map{ case (t31, t32, t33) => s"${t31}${t32}${t33.mkString}" }
-    //   s"${t1}${t2.mkString}$t3s"
     val ut = tyre"${lddut}${lddut}*(.${lddut}${lddut}*)*".map(string) // user (local) part
     val sdt = tyre"${ldt}(${lddt}*${ldt})?".map(string) // subdomain element
     val tdt = tyre"$lt$lt$lt*".map(string)  // top domain
