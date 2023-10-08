@@ -6,7 +6,7 @@ import scala.util.parsing.input.Position
 
 object TyreParser extends Parsers:
   type Elem = Token
-  private val reservedChars = "*|()[]?\\-".toSet
+  private val reservedChars = "*+|()[]?\\-".toSet
   private def accept(name: String, c: Char): Parser[Char] =
     accept(name, { case `c` => c })
   private val star: Parser[Char] = accept("star", '*')
