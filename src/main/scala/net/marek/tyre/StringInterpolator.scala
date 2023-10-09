@@ -14,7 +14,7 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
   val parts: Seq[String] = sc match
     case '{ StringContext($t: _*) } =>
       t match
-        case Varargs(parts) => parts.map(_.valueOrAbort)
+        case Varargs(parts) => parts.map(p => StringContext.processEscapes(p.valueOrAbort))
 
   val args_ =
     args match

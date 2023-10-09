@@ -29,11 +29,8 @@ class RegexTest extends AnyFunSuite:
     assertResult(None)(tm.run("x"))
 
   test("Email parser"):
-    // Dash escaping doesn't work
-    // val ldudt = tyre"[A-Za-z0-9_\\-]"
-    val lddut = tyre"[A-Za-z0-9_]"
-    // val lddt = tyre"[A-Za-z0-9\\-]"
-    val lddt = tyre"[A-Za-z0-9]"
+    val lddut = tyre"[A-Za-z0-9_\\-]"
+    val lddt = tyre"[A-Za-z0-9\\-]"
     val ldt = tyre"[A-Za-z0-9]"
     val lt = tyre"[A-Za-z]"
     val ut = tyre"${lddut}+(.${lddut}+)*".map(string) // user (local) part
@@ -42,15 +39,15 @@ class RegexTest extends AnyFunSuite:
     val dt = tyre"$sdt.($sdt.)*$tdt".map(string)  // domain part
     val et = tyre"$ut@$dt"  // email
     val tm = et.compile()
-    val email = tm.run("robert.marek@fingo.net")
+    val email = tm.run("some.user-name@example.com")
     assert(email.isDefined)
     val (user, _, domain) = email.get
-    assertResult("robert.marek")(user)
-    assertResult("fingo.net")(domain)
-    assertResult(None)(tm.run("robert.marek"))
-    assertResult(None)(tm.run("@fingo.net"))
-    assertResult(None)(tm.run("robert@marek"))
-    assertResult(None)(tm.run(".robert@fingo.net"))
+    assertResult("some.user-name")(user)
+    assertResult("example.com")(domain)
+    assertResult(None)(tm.run("some.user-name"))
+    assertResult(None)(tm.run("@example.com"))
+    assertResult(None)(tm.run("some@user-name"))
+    assertResult(None)(tm.run(".user-namet@example.com"))
 
   test("Money parser"):
     // type Symbol = '$' | '€' |'£' | '₣' | '₿'
