@@ -6,7 +6,7 @@ import scala.util.parsing.input.Position
 
 object TyreParser extends Parsers:
   type Elem = Token
-  private val reservedChars = "*+|()[]?\\-".toSet
+  private val reservedChars = "*+|()[]?-\"\\".toSet
   private def accept(name: String, c: Char): Parser[Char] =
     accept(name, { case `c` => c })
   private val star: Parser[Char] = accept("star", '*')
@@ -21,10 +21,10 @@ object TyreParser extends Parsers:
   private val questionMark: Parser[Char] = accept("questionMark", '?')
   private val escape: Parser[Char] = accept("escape", '\\')
   private val caret: Parser[Char] = accept("caret", '^')
+  private val quote: Parser[Char] = accept("quote", '"')
   private val hole = accept("hole", { case Hole(idx) => idx })
-  private val literal: Parser[Char] =
-    accept("literal", { case el: Char if !reservedChars(el) => el }) |
-      escape ~> (star | plus | or | lParen | rParen | escape | lBracket | rBracket | questionMark | dash | caret)
+  private val literal: Parser[Char] = accept("literal", { case el: Char if !reservedChars(el) => el }) |
+    escape ~> (star | plus | or | lParen | rParen | escape | lBracket | rBracket | questionMark | dash | caret | quote)
   private val any =
     hole ^^ ReHole.apply
       | lBracket ~> opt(caret) ~ rep1(literal ~ opt(dash ~> literal)) <~ rBracket ^^ {

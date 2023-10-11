@@ -29,8 +29,8 @@ class RegexTest extends AnyFunSuite:
     assertResult(None)(tm.run("x"))
 
   test("Email parser"):
-    val lddut = tyre"[A-Za-z0-9_\\-]"
-    val lddt = tyre"[A-Za-z0-9\\-]"
+    val lddut = tyre"[A-Za-z0-9_\-]"
+    val lddt = tyre"[A-Za-z0-9\-]"
     val ldt = tyre"[A-Za-z0-9]"
     val lt = tyre"[A-Za-z]"
     val ut = tyre"${lddut}+(.${lddut}+)*".map(string) // user (local) part
