@@ -33,8 +33,6 @@ case class OnTail[H, IS <: Tuple, OS <: Tuple](r: Routine[IS, OS]) extends Routi
 
 class Context[R <: Tuple]:
 
-  // given Logger = SimpleLogger
-
   // States
   sealed trait State[S <: Tuple]:
     val next: List[Transition[S]]
@@ -117,7 +115,6 @@ class Context[R <: Tuple]:
 
     def parseAll(initStack: IS, word: List[Char]): List[R] =
       def parseRec(word: List[Char], threads: List[Thread]): List[R] =
-        Logger.log(s"word: $word, threads: ${threads.size}")
         word match
           case c :: rest => parseRec(rest, threads.flatMap(_.next(c)).distinctBy(_.state))
           case Nil =>
@@ -129,7 +126,6 @@ class Context[R <: Tuple]:
 
     def parse(initStack: IS, word: List[Char]): Option[R] =
       def parseRec(word: List[Char], threads: List[Thread]): Option[R] =
-        Logger.log(s"word: $word, threads: ${threads.size}")
         word match
           case c :: rest => parseRec(rest, threads.flatMap(_.next(c)).distinctBy(_.state))
           case Nil =>
@@ -154,3 +150,17 @@ class Context[R <: Tuple]:
       initStates.foreach(st => renderer.add(st.state))
       loop(initStates.map(_.state))
       renderer.render
+
+    def contramap[IS1 <: Tuple](f: IS1 => IS): MooreMachine[IS1] =
+      val iss: List[InitState[IS1]] =
+        initStates.map:
+          case is: InitAcceptingState[?] =>
+            def op(x: IS1) = is.op(f(x))
+            InitAcceptingState(op)
+          case is: InitNonAcceptingState[?] =>
+            new InitNonAcceptingState[IS1]:
+              type OS = is.OS
+              lazy val state: NonAcceptingState[OS] = is.state
+              val op = x => is.op(f(x))
+      new MooreMachine[IS1]:
+        val initStates = iss
