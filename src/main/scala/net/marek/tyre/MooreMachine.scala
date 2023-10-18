@@ -1,5 +1,7 @@
 package net.marek.tyre
 
+import scala.collection.mutable
+
 /* Type parameters name conventions:
 R - result type of parsing - parse tree shape
 IS - input stack for routine
@@ -46,6 +48,7 @@ class Context[R <: Tuple]:
 
   // Transitions to next state, performing routines
   sealed trait Transition[IS <: Tuple]:
+    def state: State[?]
     def thread(stack: IS, c: Char): Thread
 
   trait NonAcceptingTransition[IS <: Tuple] extends Transition[IS]:
@@ -53,6 +56,7 @@ class Context[R <: Tuple]:
     type OS <: Tuple
     lazy val routine: Routine[IS, OS]
     lazy val nextState: NonAcceptingState[OS]
+    def state = nextState
     def thread(stack: IS, c: Char): Thread =
       val newStack = routine.execOn(stack, c)
       new Thread:
@@ -63,6 +67,7 @@ class Context[R <: Tuple]:
   trait AcceptingTransition[IS <: Tuple] extends Transition[IS]:
     self =>
     lazy val routine: Routine[IS, R]
+    def state = AcceptingState
     def thread(stack: IS, c: Char): Thread =
       val newStack = routine.execOn(stack, c)
       new Thread:
@@ -72,6 +77,7 @@ class Context[R <: Tuple]:
 
   // Init states
   sealed trait InitState[IS <: Tuple]:
+    def state: State[?]
     def thread(initStack: IS): Thread
 
   trait InitNonAcceptingState[IS <: Tuple] extends InitState[IS]:
@@ -86,6 +92,7 @@ class Context[R <: Tuple]:
         lazy val stack = op(initStack)
 
   case class InitAcceptingState[IS <: Tuple](op: IS => R) extends InitState[IS]:
+    def state = AcceptingState
     def thread(initStack: IS): Thread =
       new Thread:
         type S = R
@@ -105,7 +112,21 @@ class Context[R <: Tuple]:
       case _ => None
 
   trait MooreMachine[IS <: Tuple]:
+
     val initStates: List[InitState[IS]]
+
+    def parseAll(initStack: IS, word: List[Char]): List[R] =
+      def parseRec(word: List[Char], threads: List[Thread]): List[R] =
+        Logger.log(s"word: $word, threads: ${threads.size}")
+        word match
+          case c :: rest => parseRec(rest, threads.flatMap(_.next(c)).distinctBy(_.state))
+          case Nil =>
+            threads
+              .map(_.getIfAccepting)
+              .collect:
+                case Some(value) => value
+      parseRec(word, initStates.map(_.thread(initStack)))
+
     def parse(initStack: IS, word: List[Char]): Option[R] =
       def parseRec(word: List[Char], threads: List[Thread]): Option[R] =
         Logger.log(s"word: $word, threads: ${threads.size}")
@@ -117,3 +138,19 @@ class Context[R <: Tuple]:
               .collectFirst:
                 case Some(value) => value
       parseRec(word, initStates.map(_.thread(initStack)))
+
+    def show(renderer: MachineRenderer, testChars: Set[Char]): String =
+      val visited = mutable.Set.empty[State[?]]
+      def loop(states: List[State[?]]): Unit =
+        visited.addAll(states)
+        val nextStates =
+          states.flatMap: st =>
+            st.next.map: nextState =>
+              renderer.add(st, nextState.state, testChars.filter(st.test))
+              nextState.state
+        nextStates.filterNot(visited(_)) match
+          case Nil =>
+          case some => loop(some)
+      initStates.foreach(st => renderer.add(st.state))
+      loop(initStates.map(_.state))
+      renderer.render

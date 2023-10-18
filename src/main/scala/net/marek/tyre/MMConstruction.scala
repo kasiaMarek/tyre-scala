@@ -113,32 +113,34 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
       new MooreMachine[IS]:
         Logger.log("mmLoop new MooreMachine")
         val initStates =
-          mmE.initStates.flatMap:
-            case is: context.InitAcceptingState[?] => Nil
-            case is: context.InitNonAcceptingState[?] =>
-              List:
+          lazy val fixableStates: List[RefinedInitNonAcceptingState[T, IS]] =
+            mmE.initStates.flatMap:
+              case is: context.InitAcceptingState[?] => Nil
+              case is: context.InitNonAcceptingState[?] =>
+                List:
+                  new RefinedInitNonAcceptingState[T, IS]:
+                    Logger.log("mmLoop new InitNonAcceptingState")
+                    type Tail = is.OS
+                    type OS = List[T] *: Tail
+                    lazy val state = new NonAcceptingState:
+                      Logger.log("mmLoop new NonAcceptingState")
+                      val next: List[Transition[OS]] = is.state.next.flatMap(fixState[is.OS](fixableStates, mm, _))
+                      def test(c: Char): Boolean = is.state.test(c)
+                    val op = x => Nil *: is.op(x)
+          fixableStates ++
+            mm.initStates.map:
+              case is: InitAcceptingState[?] =>
+                Logger.log("mmLoop new InitAcceptingState")
+                new InitAcceptingState((x: IS) => is.op(Nil *: x))
+              case is: InitNonAcceptingState[?] =>
                 new InitNonAcceptingState[IS]:
                   Logger.log("mmLoop new InitNonAcceptingState")
-                  type OS = List[T] *: is.OS
-                  lazy val state = new NonAcceptingState:
-                    Logger.log("mmLoop new NonAcceptingState")
-                    val next: List[Transition[OS]] = is.state.next.flatMap(fixState[is.OS](initStates, mm, _))
-                    def test(c: Char): Boolean = is.state.test(c)
-                  val op = x => Nil *: is.op(x)
-            ++
-              mm.initStates.map:
-                case is: InitAcceptingState[?] =>
-                  Logger.log("mmLoop new InitAcceptingState")
-                  new InitAcceptingState((x: IS) => is.op(Nil *: x))
-                case is: InitNonAcceptingState[?] =>
-                  new InitNonAcceptingState[IS]:
-                    Logger.log("mmLoop new InitNonAcceptingState")
-                    type OS = is.OS
-                    lazy val state = is.state
-                    val op = x => is.op(Nil *: x)
+                  type OS = is.OS
+                  lazy val state = is.state
+                  val op = x => is.op(Nil *: x)
 
     private def fixState[S <: Tuple](
-      initStates: List[InitState[IS]],
+      initStates: List[RefinedInitNonAcceptingState[T, IS]],
       mm: MooreMachine[List[T] *: IS],
       rns0: context.Transition[S],
       alreadyFixed: List[AlreadyFixedStateMapping] = List.empty
@@ -167,31 +169,21 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
                       case l *: e *: t => is.op((l :+ e) *: t)
                   )
                 lazy val nextState: NonAcceptingState[OS] = is.state
-          val mmEIS = initStates.map:
-            case is: InitAcceptingState[?] =>
-              new AcceptingTransition[List[T] *: S]:
-                Logger.log("fix state new AcceptingTransition initStates")
-                lazy val routine: Routine[List[T] *: S, R *: IN] =
-                  Compose[List[T] *: S, List[T] *: T *: IS, R *: IN](
-                    OnTail(rns.routine),
-                    Transform:
-                      case l *: e *: t =>
-                        is.op(t) match
-                          case _ *: tt => (l :+ e).asInstanceOf[R] *: tt
-                  )
-            case is: InitNonAcceptingState[?] =>
-              new NonAcceptingTransition[List[T] *: S]:
-                Logger.log("fix state new NonAcceptingTransition initStates")
-                type OS = is.OS
-                lazy val routine: Routine[List[T] *: S, OS] =
-                  Compose[List[T] *: S, List[T] *: T *: IS, OS](
-                    OnTail(rns.routine),
-                    Transform:
-                      case l *: e *: t =>
-                        (is.op(t): @unchecked) match
-                          case _ *: tt => ((l :+ e) *: tt).asInstanceOf[OS]
-                  )
-                lazy val nextState: NonAcceptingState[OS] = is.state
+          val mmEIS = initStates.map: is =>
+            new NonAcceptingTransition[List[T] *: S]:
+              Logger.log("fix state new NonAcceptingTransition initStates")
+              type OS = is.OS
+              lazy val routine: Routine[List[T] *: S, OS] =
+                Compose[List[T] *: S, List[T] *: T *: IS, OS](
+                  OnTail(rns.routine),
+                  Transform:
+                    case l *: e *: t =>
+                      is.op(t) match
+                        case empty *: tt =>
+                          assert(empty == List(), empty)
+                          (l :+ e) *: tt
+                )
+              lazy val nextState: NonAcceptingState[OS] = is.state
           mmIS ++ mmEIS
         case rns: context.NonAcceptingTransition[?] =>
           lazy val res: List[Transition[List[T] *: S]] = List:
@@ -212,6 +204,12 @@ class MMConstruction[IN <: Tuple, R](val context: Context[R *: IN]):
                     alreadyFixed.getOrElse(next, fixState(initStates, mm, next, newFixed :: alreadyFixed))
                 def test(c: Char): Boolean = rns.nextState.test(c)
           res
+
+    trait RefinedInitNonAcceptingState[T, IS <: Tuple] extends InitNonAcceptingState[IS]:
+      type Tail <: Tuple
+      type OS = List[T] *: Tail
+      lazy val state: NonAcceptingState[OS]
+      val op: IS => OS
 
     trait AlreadyFixedStateMapping:
       type B <: Tuple

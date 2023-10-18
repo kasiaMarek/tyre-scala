@@ -6,10 +6,11 @@ import scala.util.parsing.input.Position
 
 object TyreParser extends Parsers:
   type Elem = Token
-  private val reservedChars = "*|()[]?\\-".toSet
+  private val reservedChars = "*+|()[]?-\"\\".toSet
   private def accept(name: String, c: Char): Parser[Char] =
     accept(name, { case `c` => c })
   private val star: Parser[Char] = accept("star", '*')
+  private val plus: Parser[Char] = accept("plus", '+')
   private val or: Parser[Char] = accept("or", '|')
   private val orS = or ~ or
   private val lParen: Parser[Char] = accept("lParen", '(')
@@ -20,10 +21,10 @@ object TyreParser extends Parsers:
   private val questionMark: Parser[Char] = accept("questionMark", '?')
   private val escape: Parser[Char] = accept("escape", '\\')
   private val caret: Parser[Char] = accept("caret", '^')
+  private val quote: Parser[Char] = accept("quote", '"')
   private val hole = accept("hole", { case Hole(idx) => idx })
-  private val literal: Parser[Char] =
-    accept("literal", { case el: Char if !reservedChars(el) => el }) |
-      escape ~> (star | or | lParen | rParen | escape | lBracket | rBracket | questionMark | dash | caret)
+  private val literal: Parser[Char] = accept("literal", { case el: Char if !reservedChars(el) => el }) |
+    escape ~> (star | plus | or | lParen | rParen | escape | lBracket | rBracket | questionMark | dash | caret | quote)
   private val any =
     hole ^^ ReHole.apply
       | lBracket ~> opt(caret) ~ rep1(literal ~ opt(dash ~> literal)) <~ rBracket ^^ {
@@ -43,13 +44,14 @@ object TyreParser extends Parsers:
   private val consumingExpr: Parser[Re] =
     lParen ~> expr2 <~ rParen | any
 
-  private val starOrQuestionMark: Parser[Boolean] =
-    star ^^ { _ => true } | questionMark ^^ { _ => false }
+  private val repetition: Parser[Rep] =
+    star ^^ { _ => Rep.Star } | plus ^^ { _ => Rep.Plus } | questionMark ^^ { _ => Rep.QuestionMark }
 
   private val expr0: Parser[Re] =
-    consumingExpr ~ opt(starOrQuestionMark) ^^ {
-      case r ~ Some(true) => ReStar(r)
-      case r ~ Some(false) => ReOpt(r)
+    consumingExpr ~ opt(repetition) ^^ {
+      case r ~ Some(Rep.Star) => ReStar(r)
+      case r ~ Some(Rep.Plus) => RePlus(r)
+      case r ~ Some(Rep.QuestionMark) => ReOpt(r)
       case r ~ None => r
     }
 
@@ -92,3 +94,6 @@ object End
 case class Hole(idx: Int)
 
 type Token = Char | Hole | End.type
+
+enum Rep:
+  case Star, Plus, QuestionMark
