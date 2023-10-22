@@ -8,6 +8,7 @@ case class Range(from: Char, to: Char)
 
 object Range:
   def apply(char: Char): Range = Range(char, char)
+  given Conversion[Char, Range] = Range(_)
 
 given ToExpr[Range] with
   def apply(r: Range)(using Quotes) = r match

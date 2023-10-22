@@ -15,8 +15,8 @@ class RegexTest extends AnyFunSuite:
     assertResult(None)(tm.run("-"))
 
   test("Time parser"):
-    val ht = tyre"[0-1][0-9]|2[0-3]".map(number(_, _))
-    val mt = tyre"[0-5][0-9]".map(number(_, _))
+    val ht = tyre"[0-1]\d|2[0-3]".map(number(_, _))
+    val mt = tyre"[0-5]\d".map(number(_, _))
     val tt = tyre"$ht:$mt".map: t =>
       val (h, _, m) = t
       LocalTime.of(h, m)
@@ -29,14 +29,14 @@ class RegexTest extends AnyFunSuite:
     assertResult(None)(tm.run("x"))
 
   test("Email parser"):
-    val lddut = tyre"[A-Za-z0-9_\-]"
+    val lddut = tyre"\w|\-"
     val lddt = tyre"[A-Za-z0-9\-]"
     val ldt = tyre"[A-Za-z0-9]"
     val lt = tyre"[A-Za-z]"
-    val ut = tyre"${lddut}+(.${lddut}+)*".map(string) // user (local) part
+    val ut = tyre"${lddut}+(\.${lddut}+)*".map(string) // user (local) part
     val sdt = tyre"${ldt}(${lddt}*${ldt})?".map(string) // subdomain element
     val tdt = tyre"$lt$lt+".map(string)  // top domain
-    val dt = tyre"$sdt.($sdt.)*$tdt".map(string)  // domain part
+    val dt = tyre"$sdt\.($sdt\.)*$tdt".map(string)  // domain part
     val et = tyre"$ut@$dt"  // email
     val tm = et.compile()
     val email = tm.run("some.user-name@example.com")
@@ -50,11 +50,10 @@ class RegexTest extends AnyFunSuite:
     assertResult(None)(tm.run(".user-namet@example.com"))
 
   test("Money parser"):
-    // type Symbol = '$' | '€' |'£' | '₣' | '₿'
     type Symbol = Char
     case class Money(amount: BigDecimal, currency: Symbol)
-    val pt = tyre"[$$€£₣₿] ?[1-9][0-9]*(.[0-9][0-9])?"
-    val st = tyre"[1-9][0-9]*(.[0-9][0-9])? ?[$$€£₣₿]"
+    val pt = tyre"[$$€£₣₿]\h?[1-9]\d*(\.\d\d)?"
+    val st = tyre"[1-9]\d*(\.\d\d)? ?[$$€£₣₿]"
     val mt = tyre"$pt|$st".map: e =>
       val t = e.fold(
         l => (l(0), l(2) :: l(3), l(4)),
@@ -64,7 +63,7 @@ class RegexTest extends AnyFunSuite:
       val fraction = t(2).map(p => (number(p(1), p(2))))
       (t(0), bigDecimal(integral, fraction, 2))
     val tm = mt.compile()
-    val amount = tm.run("€1643.52").map(t => Money(t(1), t(0)))
+    val amount = tm.run("€ 1643.52").map(t => Money(t(1), t(0)))
     assertResult(Some(Money(BigDecimal(1643.52), '€')))(amount)
 
   def digit(c: Char): Int = c - '0'

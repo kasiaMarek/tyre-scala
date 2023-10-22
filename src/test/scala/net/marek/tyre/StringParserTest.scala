@@ -38,6 +38,12 @@ class StringParserTest extends AnyFunSuite:
     assertParses("[abs-vz]", ReIn(List(Range('a'), Range('b'), Range('s', 'v'), Range('z'))))
     assertParses("[^s-v]", ReNotIn(List(Range('s', 'v'))))
     assertParses("@|l", ReOr(ReHole(0), char('l')))
+    assertParses("\\w\\s\\D", ReAnd(
+      ReIn(List('_', Range('a', 'z'), Range('A', 'Z'), Range('0', '9'))), ReAnd(
+        ReIn(List(' ', '\t', '\n', '\r', '\f', '\u000B')), ReNotIn(List(Range('0', '9')))
+      )
+    ))
+    assertParses("x.\\.", ReAnd(char('x'), ReAnd(ReAny, char('.'))))
     assertDoesNotParse("x)y")
     assertDoesNotParse("x|*")
 

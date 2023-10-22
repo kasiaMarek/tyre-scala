@@ -21,17 +21,38 @@ object TyreParser extends Parsers:
     case escape extends Reserved('\\')
     case caret extends Reserved('^')
     case quote extends Reserved('"')
+    case dot extends Reserved('.')
   private object Reserved:
-    private val chars = values.map(_.char).toSet
-    def contanins(c: Char): Boolean = chars(c)
+    val chars = values.map(_.char).toSet
   private given Conversion[Reserved, Parser[Char]] = _.parser
 
+  private enum CharClass(val input: Char, val output: List[Range]):
+    case space extends CharClass('s', List(' ', '\t', '\n', '\r', '\f', '\u000B'))
+    case hSpace
+      extends CharClass(
+        'h',
+        List(' ', '\t', '\u00A0', '\u1680', '\u180E', Range('\u2000', '\u200A'), '\u202F', '\u205F', '\u3000')
+      )
+    case vSpace extends CharClass('v', List('\n', '\r', '\f', '\u000B', '\u0085', '\u2028', '\u2029'))
+    case word extends CharClass('w', List('_', Range('a', 'z'), Range('A', 'Z'), Range('0', '9')))
+    case digit extends CharClass('d', List(Range('0', '9')))
+  private object CharClass:
+    val vals = values.map(p => p.input -> p.output).toMap
+    val negs = values.map(p => p.input.toUpper -> p.output).toMap
+    def hasVal(c: Char): Boolean = vals.keySet(c)
+    def hasNeg(c: Char): Boolean = negs.keySet(c)
+
   import Reserved._
+  import CharClass._
 
   private val orS = or ~ or
   private val hole = accept("hole", { case Hole(idx) => idx })
-  private val literal: Parser[Char] = accept("literal", { case el: Char if !Reserved.contanins(el) => el }) |
-    escape ~> accept("escaped literal", { case el: Char if Reserved.contanins(el) => el })
+  private val literal: Parser[Char] = accept("literal", { case el: Char if !Reserved.chars(el) => el }) |
+    escape ~> accept("escaped literal", { case el: Char if Reserved.chars(el) => el })
+  private val charClassIn =
+    escape ~> accept("predef class", { case el: Char if CharClass.hasVal(el) => CharClass.vals(el) })
+  private val charClassNotIn =
+    escape ~> accept("predef class", { case el: Char if CharClass.hasNeg(el) => CharClass.negs(el) })
   private val any =
     hole ^^ ReHole.apply
       | lBracket ~> opt(caret) ~ rep1(literal ~ opt(dash ~> literal)) <~ rBracket ^^ {
@@ -47,6 +68,9 @@ object TyreParser extends Parsers:
           })
       }
       | literal ^^ { e => Re.char(e) }
+      | charClassIn ^^ { e => ReIn(e) }
+      | charClassNotIn ^^ { e => ReNotIn(e) }
+      | dot ^^ { _ => ReAny }
 
   private val consumingExpr: Parser[Re] =
     lParen ~> expr2 <~ rParen | any
