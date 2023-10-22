@@ -6,25 +6,32 @@ import scala.util.parsing.input.Position
 
 object TyreParser extends Parsers:
   type Elem = Token
-  private val reservedChars = "*+|()[]?-\"\\".toSet
-  private def accept(name: String, c: Char): Parser[Char] =
-    accept(name, { case `c` => c })
-  private val star: Parser[Char] = accept("star", '*')
-  private val plus: Parser[Char] = accept("plus", '+')
-  private val or: Parser[Char] = accept("or", '|')
+
+  private enum Reserved(val char: Char):
+    def parser: Parser[Char] = accept(this.toString, { case `char` => char })
+    case star extends Reserved('*')
+    case plus extends Reserved('+')
+    case or extends Reserved('|')
+    case lParen extends Reserved('(')
+    case rParen extends Reserved(')')
+    case lBracket extends Reserved('[')
+    case rBracket extends Reserved(']')
+    case dash extends Reserved('-')
+    case questionMark extends Reserved('?')
+    case escape extends Reserved('\\')
+    case caret extends Reserved('^')
+    case quote extends Reserved('"')
+  private object Reserved:
+    private val chars = values.map(_.char).toSet
+    def contanins(c: Char): Boolean = chars(c)
+  private given Conversion[Reserved, Parser[Char]] = _.parser
+
+  import Reserved._
+
   private val orS = or ~ or
-  private val lParen: Parser[Char] = accept("lParen", '(')
-  private val rParen: Parser[Char] = accept("rParen", ')')
-  private val lBracket: Parser[Char] = accept("lBracket", '[')
-  private val rBracket: Parser[Char] = accept("rBracket", ']')
-  private val dash: Parser[Char] = accept("dash", '-')
-  private val questionMark: Parser[Char] = accept("questionMark", '?')
-  private val escape: Parser[Char] = accept("escape", '\\')
-  private val caret: Parser[Char] = accept("caret", '^')
-  private val quote: Parser[Char] = accept("quote", '"')
   private val hole = accept("hole", { case Hole(idx) => idx })
-  private val literal: Parser[Char] = accept("literal", { case el: Char if !reservedChars(el) => el }) |
-    escape ~> (star | plus | or | lParen | rParen | escape | lBracket | rBracket | questionMark | dash | caret | quote)
+  private val literal: Parser[Char] = accept("literal", { case el: Char if !Reserved.contanins(el) => el }) |
+    escape ~> accept("escaped literal", { case el: Char if Reserved.contanins(el) => el })
   private val any =
     hole ^^ ReHole.apply
       | lBracket ~> opt(caret) ~ rep1(literal ~ opt(dash ~> literal)) <~ rBracket ^^ {
