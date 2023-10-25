@@ -43,7 +43,6 @@ object TyreParser extends Parsers:
     def hasNeg(c: Char): Boolean = negs.keySet(c)
 
   import Reserved._
-  import CharClass._
 
   private val orS = or ~ or
   private val hole = accept("hole", { case Hole(idx) => idx })

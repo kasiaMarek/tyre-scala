@@ -1,6 +1,7 @@
 package net.marek.tyre
 
 import scala.collection.mutable
+import net.marek.tyre.diagnostic.Renderer
 
 /* Type parameters name conventions:
 R - result type of parsing - parse tree shape
@@ -82,7 +83,7 @@ class Context[R <: Tuple]:
     self =>
     type OS <: Tuple
     lazy val state: NonAcceptingState[OS]
-    val op: IS => OS
+    def op(is: IS): OS
     def thread(initStack: IS): Thread =
       new Thread:
         type S = OS
@@ -109,7 +110,7 @@ class Context[R <: Tuple]:
       case AcceptingState => Some(stack)
       case _ => None
 
-  trait MooreMachine[IS <: Tuple]:
+  trait Automaton[IS <: Tuple]:
 
     val initStates: List[InitState[IS]]
 
@@ -135,7 +136,7 @@ class Context[R <: Tuple]:
                 case Some(value) => value
       parseRec(word, initStates.map(_.thread(initStack)))
 
-    def show(renderer: MachineRenderer, testChars: Set[Char]): String =
+    def show(renderer: Renderer, testChars: Set[Char]): String =
       val visited = mutable.Set.empty[State[?]]
       def loop(states: List[State[?]]): Unit =
         visited.addAll(states)
@@ -151,7 +152,7 @@ class Context[R <: Tuple]:
       loop(initStates.map(_.state))
       renderer.render
 
-    def contramap[IS1 <: Tuple](f: IS1 => IS): MooreMachine[IS1] =
+    def contramap[IS1 <: Tuple](f: IS1 => IS): Automaton[IS1] =
       val iss: List[InitState[IS1]] =
         initStates.map:
           case is: InitAcceptingState[?] =>
@@ -161,6 +162,6 @@ class Context[R <: Tuple]:
             new InitNonAcceptingState[IS1]:
               type OS = is.OS
               lazy val state: NonAcceptingState[OS] = is.state
-              val op = x => is.op(f(x))
-      new MooreMachine[IS1]:
+              def op(x: IS1) = is.op(f(x))
+      new Automaton[IS1]:
         val initStates = iss
