@@ -34,7 +34,7 @@ class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
       new Automaton:
         val initStates =
           compile[IS, t1](l, leftAdjustedCont).initStates ++
-          compile[IS, t2](r, rightAdjustedCont).initStates
+            compile[IS, t2](r, rightAdjustedCont).initStates
 
     case And(l: Tyre[t1], r: Tyre[t2]) =>
       val adjustedCont = continuation.contramap[t2 *: t1 *: IS](x => (x(1), x(0)) *: x.tail.tail)
@@ -103,10 +103,9 @@ class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
         case transition: context.NonAcceptingTransition[?] =>
           fixNonAcceptingTransition(initStates, transition, alreadyFixed)
 
-
     private def fixAcceptingTransition[S <: Tuple](
       initStates: List[RefinedInitNonAcceptingState[T, IS]],
-      transition: context.AcceptingTransition[S],
+      transition: context.AcceptingTransition[S]
     ): List[Transition[List[T] *: S]] =
       val withContinuation = continuation.initStates.map:
         case is: InitAcceptingState[?] =>
@@ -129,7 +128,7 @@ class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
 
     private def transitionWithTail[S <: Tuple, A <: Tuple](
       head: context.AcceptingTransition[S],
-      tail: InitNonAcceptingState[A],
+      tail: InitNonAcceptingState[A]
     )(transform: List[T] *: T *: IS => tail.OS): Transition[List[T] *: S] =
       new NonAcceptingTransition[List[T] *: S]:
         type OS = tail.OS
@@ -165,7 +164,7 @@ class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
       type Tail <: Tuple
       type OS = List[T] *: Tail
       lazy val state: NonAcceptingState[OS]
-      def op(x : IS): Nil.type *: Tail = Nil *: opTail(x)
+      def op(x: IS): Nil.type *: Tail = Nil *: opTail(x)
       def opTail(x: IS): Tail
 
     trait AlreadyFixedTransition:
