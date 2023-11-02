@@ -25,6 +25,7 @@ case class Conv[R1, R2](tyre: Tyre[R1], f: R1 => R2) extends Tyre[R2]:
   override def toString(): String = s"f($tyre)"
 
 object Pred:
+  def any: Tyre[Char] = Pred(_ => true)
   def in(cs: List[Range]): Tyre[Char] = Pred(c => cs.exists(r => r.from <= c && r.to >= c))
   def notIn(cs: List[Range]): Tyre[Char] = Pred(c => cs.forall(r => r.from > c || r.to < c))
   def char(c: Char): Tyre[Char] = Pred(_ == c)

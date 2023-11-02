@@ -1,13 +1,13 @@
-package net.marek.tyre
+package net.marek.tyre.diagnostic
 
 import scala.collection.mutable
 
-trait MachineRenderer:
+trait Renderer:
   def add(initState: Any): Unit
   def add(state: Any, nextState: Any, cs: Set[Char]): Unit
   def render: String
 
-class GraphvizMachineRenderer extends MachineRenderer:
+class GraphvizRenderer extends Renderer:
   val sb = mutable.StringBuilder()
   def add(initState: Any): Unit =
     sb.append(s"start -> $initState\n".replaceAll("[\\.\\$@]", "_"))

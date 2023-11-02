@@ -1,12 +1,27 @@
 TODO
 ----
 
+### HIGH PRIORITY
+
 - [X] ```java.lang.ClassCastException: class scala.collection.immutable.$colon$colon cannot be cast to class scala.Tuple3``` (MMConstruction.scala:103)
 - [X] Handle `+` (at least one element)
-- [-] Allow escaping all characters (including escaping in brackets)
-- [ ] Improve tyre map executions - limit them
-- [ ] Add handling of character classes (\s . \w etc.)
+- [X] Improve tyre map executions - limit them
+- [X] Add handling of character classes (\s . \w etc.)
+- [X] Allow special character in brackets without escaping (eg. .)
+- [X] Allow character classes in brackets (eg. [^\s])
+- [ ] Write readme
+- [ ] Stringify - allow easily flatten matched data to string
+- [ ] Separate API from internals (packages)
+
+### BACKLOG
+
+- [ ] Check if TyRE matching is greedy
+- [ ] Support for Unicode character values (\uhhhh)
+- [ ] Allow escaped characters in ranges (eg. [\t-s]) and generally in brackets (eg. [^\s])
 - [ ] Support for singleton types
 - [ ] Helper functions for handling digits and numbers
-- [ ] Helper functions for working with strings (flatten chars structures)
-- [ ] Change context to be an implicit argument to all methods
+- [ ] Unicode mode
+
+### TO CONSIDER
+
+- [ ] Externalize conversions to futher limit map executions

@@ -3,6 +3,9 @@ package net.marek.tyre
 // Re - untyped regular expression, used to buuld expressions from string representations
 sealed trait Re
 
+case object ReAny extends Re:
+  override def toString(): String = "."
+
 case class ReIn(cs: List[Range]) extends Re:
   override def toString(): String = cs
     .map:

@@ -4,7 +4,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import Pred.given
 
-class MachineTest extends AnyFunSuite:
+class AutomatonTest extends AnyFunSuite:
 
 	test("Simple Pred"):
 		val tyre = 'A'
