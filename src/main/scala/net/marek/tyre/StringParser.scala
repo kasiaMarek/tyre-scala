@@ -7,23 +7,25 @@ import scala.util.parsing.input.Position
 object TyreParser extends Parsers:
   type Elem = Token
 
-  private enum Reserved(val char: Char):
+  private enum Reserved(val char: Char, val notEscapedInBracket: Boolean):
     def parser: Parser[Char] = accept(this.toString, { case `char` => char })
-    case star extends Reserved('*')
-    case plus extends Reserved('+')
-    case or extends Reserved('|')
-    case lParen extends Reserved('(')
-    case rParen extends Reserved(')')
-    case lBracket extends Reserved('[')
-    case rBracket extends Reserved(']')
-    case dash extends Reserved('-')
-    case questionMark extends Reserved('?')
-    case escape extends Reserved('\\')
-    case caret extends Reserved('^')
-    case quote extends Reserved('"')
-    case dot extends Reserved('.')
+    case star extends Reserved('*', notEscapedInBracket = true)
+    case plus extends Reserved('+', notEscapedInBracket = true)
+    case or extends Reserved('|', notEscapedInBracket = true)
+    case lParen extends Reserved('(', notEscapedInBracket = true)
+    case rParen extends Reserved(')', notEscapedInBracket = true)
+    case lBracket extends Reserved('[', notEscapedInBracket = true)
+    case rBracket extends Reserved(']', notEscapedInBracket = false)
+    case dash extends Reserved('-', notEscapedInBracket = false)
+    case questionMark extends Reserved('?', notEscapedInBracket = true)
+    case escape extends Reserved('\\', notEscapedInBracket = false)
+    case caret extends Reserved('^', notEscapedInBracket = false)
+    case quote extends Reserved('"', notEscapedInBracket = false)
+    case dot extends Reserved('.', notEscapedInBracket = true)
   private object Reserved:
     val chars = values.map(_.char).toSet
+    def isReservedNotEscapedInBracket(c: Char) =
+      values.find(_.char == c).exists(_.notEscapedInBracket)
   private given Conversion[Reserved, Parser[Char]] = _.parser
 
   private enum CharClass(val input: Char, val output: List[Range]):
@@ -36,6 +38,10 @@ object TyreParser extends Parsers:
     case vSpace extends CharClass('v', List('\n', '\r', '\f', '\u000B', '\u0085', '\u2028', '\u2029'))
     case word extends CharClass('w', List('_', Range('a', 'z'), Range('A', 'Z'), Range('0', '9')))
     case digit extends CharClass('d', List(Range('0', '9')))
+    case tab extends CharClass('t', List('\t'))
+    case nl extends CharClass('\n', List('\n'))
+    case cr extends CharClass('\r', List('\r'))
+    case ff extends CharClass('\f', List('\u000C'))
   private object CharClass:
     val vals = values.map(p => p.input -> p.output).toMap
     val negs = values.map(p => p.input.toUpper -> p.output).toMap
@@ -52,19 +58,21 @@ object TyreParser extends Parsers:
     escape ~> accept("predef class", { case el: Char if CharClass.hasVal(el) => CharClass.vals(el) })
   private val charClassNotIn =
     escape ~> accept("predef class", { case el: Char if CharClass.hasNeg(el) => CharClass.negs(el) })
+  private val inBracketSpecial =
+    accept("not escaped special", { case el: Char if Reserved.isReservedNotEscapedInBracket(el) => el })
+
+  private val rangeOrLiteralInBracket =
+    literal ~ opt(dash ~> literal) ^^ {
+      case li1 ~ None => List(Range(li1, li1))
+      case start ~ Some(end) => List(Range(start, end))
+    } | inBracketSpecial ^^ { case li => List(Range(li, li)) }
+      | charClassIn | charClassNotIn
+
   private val any =
     hole ^^ ReHole.apply
-      | lBracket ~> opt(caret) ~ rep1(literal ~ opt(dash ~> literal)) <~ rBracket ^^ {
-        case Some(_) ~ list =>
-          ReNotIn(list.map {
-            case li1 ~ None => Range(li1, li1)
-            case start ~ Some(end) => Range(start, end)
-          })
-        case None ~ list =>
-          ReIn(list.map {
-            case li1 ~ None => Range(li1, li1)
-            case start ~ Some(end) => Range(start, end)
-          })
+      | lBracket ~> opt(caret) ~ rep1(rangeOrLiteralInBracket) <~ rBracket ^^ {
+        case Some(_) ~ list => ReNotIn(list.flatten)
+        case None ~ list => ReIn(list.flatten)
       }
       | literal ^^ { e => Re.char(e) }
       | charClassIn ^^ { e => ReIn(e) }

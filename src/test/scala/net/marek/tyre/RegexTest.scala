@@ -7,8 +7,7 @@ import java.time.LocalTime
 class RegexTest extends AnyFunSuite:
 
   test("Double star"):
-    val t = tyre"[A-Za-z0-9_]"
-    val tt = tyre"($t$t*)*".map(string) // doesn't make really sense, but covers a corner-case
+    val tt = tyre"(\w\w*)*".map(string) // doesn't make really sense, but covers a corner-case
     val tm = tt.compile()
     val result = tm.run("abbabb")
     assertResult(Some("abbabb"))(result)
@@ -29,7 +28,7 @@ class RegexTest extends AnyFunSuite:
     assertResult(None)(tm.run("x"))
 
   test("Email parser"):
-    val lddut = tyre"\w|\-"
+    val lddut = tyre"[\w\-]"
     val lddt = tyre"[A-Za-z0-9\-]"
     val ldt = tyre"[A-Za-z0-9]"
     val lt = tyre"[A-Za-z]"
