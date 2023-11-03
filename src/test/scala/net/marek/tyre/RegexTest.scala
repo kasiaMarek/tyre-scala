@@ -65,6 +65,26 @@ class RegexTest extends AnyFunSuite:
     val amount = tm.run("€ 1643.52").map(t => Money(t(1), t(0)))
     assertResult(Some(Money(BigDecimal(1643.52), '€')))(amount)
 
+  test("Google map coordinates parser"):
+    val lgdt = tyre"(1[0-7]|\d)?\d".map(int)
+    val ltdt = tyre"[1-8]?\d".map(int)
+    val mt = tyre"[0-5]\d".map(int)
+    val st = tyre"[0-5]\d\.\d".map(double)
+    val ct = tyre"$lgdt°$mt'$st\"[NS]\h$ltdt°$mt'$st\"[WE]"
+    val cm = ct.compile()
+    val data = """51°06'36.3"N 17°01'55.7"E"""
+    val coordinates = cm.run(data)
+    assert(coordinates.isDefined)
+    val (lgDeg, _, lgMin, _, lgSec, _, lgDir, _, ltDeg, _, ltMin, _, ltSec, _, ltDir) = coordinates.get
+    assertResult(51)(lgDeg)
+    assertResult(36.3)(lgSec)
+    assertResult('N')(lgDir)
+    assertResult(17)(ltDeg)
+    assertResult(1)(ltMin)
+    assertResult(None)(cm.run("""51°06'36.3" 17°01'55.7"E"""))
+    assertResult(None)(cm.run("""51°06'36.3"N"""))
+    assertResult(None)(cm.run("foo"))
+
   def digit(c: Char): Int = c - '0'
   def decimal(c: Char, p: Int): Int =
     digit(c)*10.pow(p)
@@ -83,8 +103,12 @@ class RegexTest extends AnyFunSuite:
     case Nil => ""
     case None => ""
     case s => s.toString
+  def int(x: Any): Int = string(x).toInt
+  def double(x: Any): Double = string(x).toDouble
 
   extension (n: Int)
     def pow(p: Int): Int = p match
       case x if x > 0 => n * n.pow(x-1)
       case _ => 1
+
+
