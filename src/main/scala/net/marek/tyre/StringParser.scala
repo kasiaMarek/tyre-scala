@@ -7,25 +7,25 @@ import scala.util.parsing.input.Position
 object TyreParser extends Parsers:
   type Elem = Token
 
-  private enum Reserved(val char: Char, val notEscapedInBracket: Boolean):
+  private enum Reserved(val char: Char, val escapedInBrackets: Boolean):
     def parser: Parser[Char] = accept(this.toString, { case `char` => char })
-    case star extends Reserved('*', notEscapedInBracket = true)
-    case plus extends Reserved('+', notEscapedInBracket = true)
-    case or extends Reserved('|', notEscapedInBracket = true)
-    case lParen extends Reserved('(', notEscapedInBracket = true)
-    case rParen extends Reserved(')', notEscapedInBracket = true)
-    case lBracket extends Reserved('[', notEscapedInBracket = true)
-    case rBracket extends Reserved(']', notEscapedInBracket = false)
-    case dash extends Reserved('-', notEscapedInBracket = false)
-    case questionMark extends Reserved('?', notEscapedInBracket = true)
-    case escape extends Reserved('\\', notEscapedInBracket = false)
-    case caret extends Reserved('^', notEscapedInBracket = false)
-    case quote extends Reserved('"', notEscapedInBracket = false)
-    case dot extends Reserved('.', notEscapedInBracket = true)
+    case star extends Reserved('*', escapedInBrackets = false)
+    case plus extends Reserved('+', escapedInBrackets = false)
+    case or extends Reserved('|', escapedInBrackets = false)
+    case lParen extends Reserved('(', escapedInBrackets = false)
+    case rParen extends Reserved(')', escapedInBrackets = false)
+    case lBracket extends Reserved('[', escapedInBrackets = false)
+    case rBracket extends Reserved(']', escapedInBrackets = true)
+    case dash extends Reserved('-', escapedInBrackets = true)
+    case questionMark extends Reserved('?', escapedInBrackets = false)
+    case escape extends Reserved('\\', escapedInBrackets = true)
+    case caret extends Reserved('^', escapedInBrackets = true)
+    case quote extends Reserved('"', escapedInBrackets = true)
+    case dot extends Reserved('.', escapedInBrackets = false)
   private object Reserved:
     val chars = values.map(_.char).toSet
-    def isReservedNotEscapedInBracket(c: Char) =
-      values.find(_.char == c).exists(_.notEscapedInBracket)
+    def isEscapedInBrackets(c: Char) =
+      values.find(_.char == c).exists(_.escapedInBrackets)
   private given Conversion[Reserved, Parser[Char]] = _.parser
 
   private enum CharClass(val input: Char, val output: List[Range]):
@@ -59,9 +59,9 @@ object TyreParser extends Parsers:
   private val charClassNotIn =
     escape ~> accept("predef class", { case el: Char if CharClass.hasNeg(el) => CharClass.negs(el) })
   private val inBracketSpecial =
-    accept("not escaped special", { case el: Char if Reserved.isReservedNotEscapedInBracket(el) => el })
+    accept("not escaped special", { case el: Char if !Reserved.isEscapedInBrackets(el) => el })
 
-  private val rangeOrLiteralInBracket =
+  private val rangeOrLiteralInBrackets =
     literal ~ opt(dash ~> literal) ^^ {
       case li1 ~ None => List(Range(li1, li1))
       case start ~ Some(end) => List(Range(start, end))
@@ -70,7 +70,7 @@ object TyreParser extends Parsers:
 
   private val any =
     hole ^^ ReHole.apply
-      | lBracket ~> opt(caret) ~ rep1(rangeOrLiteralInBracket) <~ rBracket ^^ {
+      | lBracket ~> opt(caret) ~ rep1(rangeOrLiteralInBrackets) <~ rBracket ^^ {
         case Some(_) ~ list => ReNotIn(list.flatten)
         case None ~ list => ReIn(list.flatten)
       }
