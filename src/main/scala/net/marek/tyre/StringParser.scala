@@ -3,6 +3,7 @@ package net.marek.tyre
 import scala.util.parsing.combinator.Parsers
 import scala.util.parsing.input.Reader
 import scala.util.parsing.input.Position
+import scala.Conversion
 
 object TyreParser extends Parsers:
   type Elem = Token
@@ -22,6 +23,7 @@ object TyreParser extends Parsers:
     case caret extends Reserved('^', escapedInBrackets = true)
     case quote extends Reserved('"', escapedInBrackets = true)
     case dot extends Reserved('.', escapedInBrackets = false)
+    case exclamation extends Reserved('!', escapedInBrackets = false)
   private object Reserved:
     val chars = values.map(_.char).toSet
     def isEscapedInBrackets(c: Char) =
@@ -47,6 +49,8 @@ object TyreParser extends Parsers:
     val negs = values.map(p => p.input.toUpper -> p.output).toMap
     def hasVal(c: Char): Boolean = vals.keySet(c)
     def hasNeg(c: Char): Boolean = negs.keySet(c)
+
+  private given Conversion[CastOp, Parser[CastOp]] = c => accept(c.toString, { case c.symbol => c })
 
   import Reserved._
 
@@ -80,10 +84,13 @@ object TyreParser extends Parsers:
       | dot ^^ { _ => ReAny }
 
   private val consumingExpr: Parser[Re] =
-    lParen ~> expr2 <~ rParen | any
+    lParen ~> expr3 <~ rParen | any
 
   private val repetition: Parser[Rep] =
     star ^^ { _ => Rep.Star } | plus ^^ { _ => Rep.Plus } | questionMark ^^ { _ => Rep.QuestionMark }
+
+  private val conversion: Parser[CastOp] =
+    exclamation ~> CastOp.Stringify
 
   private val expr0: Parser[Re] =
     consumingExpr ~ opt(repetition) ^^ {
@@ -94,7 +101,13 @@ object TyreParser extends Parsers:
     }
 
   private val expr1: Parser[Re] =
-    expr0 ~ opt(expr1) ^^ {
+    expr0 ~ opt(conversion) ^^ {
+      case r ~ Some(CastOp.Stringify) => ReCast(r, CastOp.Stringify)
+      case r ~ None => r
+    }
+
+  private val expr2: Parser[Re] =
+    expr1 ~ opt(expr2) ^^ {
       case l ~ Some(r) => ReAnd(l, r)
       case l ~ None => l
     }
@@ -102,14 +115,14 @@ object TyreParser extends Parsers:
   private val strictOrMergingOr: Parser[Boolean] =
     orS ^^ { _ => true } | or ^^ { _ => false }
 
-  private val expr2: Parser[Re] =
-    expr1 ~ opt(strictOrMergingOr ~ expr2) ^^ {
+  private val expr3: Parser[Re] =
+    expr2 ~ opt(strictOrMergingOr ~ expr3) ^^ {
       case l ~ Some(true ~ r) => ReOrS(l, r)
       case l ~ Some(false ~ r) => ReOr(l, r)
       case l ~ None => l
     }
 
-  private val full: Parser[Re] = expr2 <~ End
+  private val full: Parser[Re] = expr3 <~ End
 
   def apply(input: List[Elem]): Option[Re] =
     full(TokenReader(input :+ End)) match

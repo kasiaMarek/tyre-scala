@@ -41,12 +41,18 @@ class StringParserTest extends AnyFunSuite:
     assertParses("@|l", ReOr(ReHole(0), char('l')))
     assertParses("s\\tt", ReAnd(char('s'), ReAnd(char('\t'), char('t'))))
     assertParses("[\\sa]", ReIn(List(' ', '\t', '\n', '\r', '\f', '\u000B', 'a')))
-    assertParses("\\w\\s\\D", ReAnd(
-      ReIn(List('_', Range('a', 'z'), Range('A', 'Z'), Range('0', '9'))), ReAnd(
-        ReIn(List(' ', '\t', '\n', '\r', '\f', '\u000B')), ReNotIn(List(Range('0', '9')))
+    assertParses(
+      "\\w\\s\\D",
+      ReAnd(
+        ReIn(List('_', Range('a', 'z'), Range('A', 'Z'), Range('0', '9'))),
+        ReAnd(
+          ReIn(List(' ', '\t', '\n', '\r', '\f', '\u000B')),
+          ReNotIn(List(Range('0', '9')))
+        )
       )
-    ))
+    )
     assertParses("x.\\.", ReAnd(char('x'), ReAnd(ReAny, char('.'))))
+    assertParses("(abc)!sx", ReAnd(ReCast(ReAnd(char('a'), ReAnd(char('b'), char('c'))), CastOp.Stringify), char('x')))
     assertDoesNotParse("x)y")
     assertDoesNotParse("x|*")
 

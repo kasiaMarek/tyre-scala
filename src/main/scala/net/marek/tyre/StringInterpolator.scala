@@ -3,6 +3,7 @@ package net.marek.tyre
 import scala.quoted.Expr
 import scala.quoted.Quotes
 import scala.quoted.Varargs
+import scala.quoted.ToExpr
 import scala.quoted.quotes
 
 extension (inline sc: StringContext) transparent inline def tyre(inline args: Any*) = ${ tyreImpl('{ sc }, '{ args }) }
@@ -72,7 +73,14 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
     case ReOpt(re) =>
       toTyre(re) match
         case '{ $ree: Tyre[t1] } => '{ Opt(${ ree }) }
+    case ReCast(re, cast) =>
+      toTyre(re) match
+        case '{ $ree: Tyre[t1] } => '{ Cast(${ ree }, ${ Expr(cast) }) }
     case ReHole(i) => tyreArgs(i)
 
   toTyre(re) match
     case '{ $re: Tyre[t] } => '{ ${ re }.asInstanceOf[Tyre[t]] }
+
+given ToExpr[CastOp] with
+  def apply(c: CastOp)(using Quotes) = c match
+    case CastOp.Stringify => '{ CastOp.Stringify }

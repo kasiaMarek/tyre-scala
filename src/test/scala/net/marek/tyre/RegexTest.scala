@@ -32,10 +32,10 @@ class RegexTest extends AnyFunSuite:
     val lddt = tyre"[A-Za-z0-9\-]"
     val ldt = tyre"[A-Za-z0-9]"
     val lt = tyre"[A-Za-z]"
-    val ut = tyre"${lddut}+(\.${lddut}+)*".map(string) // user (local) part
-    val sdt = tyre"${ldt}(${lddt}*${ldt})?".map(string) // subdomain element
-    val tdt = tyre"$lt$lt+".map(string)  // top domain
-    val dt = tyre"$sdt\.($sdt\.)*$tdt".map(string)  // domain part
+    val ut = tyre"(${lddut}+(\.${lddut}+)*)!s" // user (local) part
+    val sdt = tyre"${ldt}(${lddt}*${ldt})?" // subdomain element
+    val tdt = tyre"$lt$lt+" // top domain
+    val dt = tyre"($sdt\.($sdt\.)*$tdt)!s"  // domain part
     val et = tyre"$ut@$dt"  // email
     val tm = et.compile()
     val email = tm.run("some.user-name@example.com")

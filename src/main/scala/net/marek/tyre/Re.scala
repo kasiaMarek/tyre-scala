@@ -38,6 +38,9 @@ case class RePlus(re: Re) extends Re:
 case class ReOpt(re: Re) extends Re:
   override def toString(): String = s"$re?"
 
+case class ReCast(re: Re, conv: CastOp) extends Re:
+  override def toString(): String = s"$re!$conv.symbol"
+
 case object ReEpsilon extends Re:
   override def toString(): String = "_"
 
@@ -46,3 +49,6 @@ case class ReHole(index: Int) extends Re:
 
 object Re:
   def char(c: Char): ReIn = ReIn(List(Range(c, c)))
+
+enum CastOp(val symbol: Char):
+  case Stringify extends CastOp('s')

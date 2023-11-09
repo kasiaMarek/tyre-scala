@@ -45,3 +45,18 @@ object OrM:
 object AndF:
   def apply[R, RT <: Tuple](left: Tyre[R], right: Tyre[RT]): Tyre[R *: RT] =
     Conv(And(left, right), (l, r) => l *: r)
+
+object Cast:
+  // TODO: restrict input type
+  private def string(x: Any): String = x match
+    case h *: t => s"${string(h)}${string(t)}"
+    case h :: t => s"${string(h)}${string(t)}"
+    case Some(x) => s"${string(x)}"
+    case Left(x) => s"${string(x)}"
+    case Right(x) => s"${string(x)}"
+    case EmptyTuple => ""
+    case Nil => ""
+    case None => ""
+    case s => s.toString
+  def apply[R](re: Tyre[R], op: CastOp) = op match
+    case CastOp.Stringify => re.map(string)
