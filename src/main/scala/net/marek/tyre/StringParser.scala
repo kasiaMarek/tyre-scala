@@ -50,14 +50,22 @@ object TyreParser extends Parsers:
     def hasVal(c: Char): Boolean = vals.keySet(c)
     def hasNeg(c: Char): Boolean = negs.keySet(c)
 
+  import NumberHelper.*
+
+  private val unicodeSymbol: Parser[Char] = accept("unicode symbol", { case 'u' => 'u' })
+  private val unicodeValue: Parser[Char] = accept("unicode value", { case h: Char if isHex(h) => h })
+
   private given Conversion[CastOp, Parser[CastOp]] = c => accept(c.toString, { case c.symbol => c })
 
-  import Reserved._
+  import Reserved.*
 
   private val orS = or ~ or
   private val hole = accept("hole", { case Hole(idx) => idx })
   private val literal: Parser[Char] = accept("literal", { case el: Char if !Reserved.chars(el) => el }) |
-    escape ~> accept("escaped literal", { case el: Char if Reserved.chars(el) => el })
+    escape ~> accept("escaped literal", { case el: Char if Reserved.chars(el) => el }) |
+    escape ~> unicodeSymbol ~> unicodeValue ~ unicodeValue ~ unicodeValue ~ unicodeValue ^^ { case h4 ~ h3 ~ h2 ~ h1 =>
+      hex(h4, h3, h2, h1).toChar
+    }
   private val charClassIn =
     escape ~> accept("predef class", { case el: Char if CharClass.hasVal(el) => CharClass.vals(el) })
   private val charClassNotIn =

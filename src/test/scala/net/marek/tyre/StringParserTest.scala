@@ -52,6 +52,8 @@ class StringParserTest extends AnyFunSuite:
       )
     )
     assertParses("x.\\.", ReAnd(char('x'), ReAnd(ReAny, char('.'))))
+    assertParses("\u0078", char('x'))
+    assertParses("[\u0141-\u0142\u017B]", ReIn(List(Range('Ł', 'ł'), Range('Ż'))))
     assertParses("(abc)!sx", ReAnd(ReCast(ReAnd(char('a'), ReAnd(char('b'), char('c'))), CastOp.Stringify), char('x')))
     assertDoesNotParse("x)y")
     assertDoesNotParse("x|*")
