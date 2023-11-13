@@ -31,20 +31,21 @@ Some specific syntax extensions have also been introduced to make writing TyRE e
 `[a-zA-Z]` | a character in the range `a`-`z` or `A`-`Z` (inclusive)
 `[^a-zA-Z]` | a character not in the range `a`-`z` and `A`-`Z` (inclusive)
 `.` | any single character
+`\uhhhh` | the Unicode character with hexadecimal value `hhhh`
 `\w` | any word character (`[a-zA-Z0-9_]`)
 `\W` | any non-word character (`[^a-zA-Z0-9_]`)
-`\s` | any whitespace character (`' '`, `'\t'`, `'\n'`, `'\r'`, `'\f'`, `'\u000B'`)
+`\s` | any whitespace character (`[ \t\n\r\f\u000B]`)
 `\S` | a non-whitespace character (`[^\s]`)
-`\h` | any horizontal whitespace character (`' '`, `'\t'`, `'\u00A0'`, `'\u1680'`, `'\u180E'`, `'\u2000'`-`'\u200A'`, `'\u202F'`, `'\u205F'`, `'\u3000'`)
+`\h` | any horizontal whitespace character (`[ \t\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]`)
 `\H` | not a horizontal whitespace character (`[^\h]`)
-`\v` | any vertical whitespace character (`'\n'`, `'\r'`, `'\f'`, `'\u000B'`, `'\u0085'`, `'\u2028'`, `'\u2029'`)
+`\v` | any vertical whitespace character (`[\n\r\f\u000B\u0085\u2028\u2029]`)
 `\V` | not a vertical whitespace character (`[^\v]`)
 `\d` | any digit (`[0-9]`)
 `\D` | a non-digit (`[^0-9]`)
 `\t` | the horizontal tab character
 `\n` | the line feed (new line) character
 `\r` | the carriage return character
-`\f` | the form feed (new page) character (`'\u000C'`)
+`\f` | the form feed (new page) character (`\u000C`)
 `\` | nothing but quotes (escapes) the following character if it is a special one, triggers error otherwise
 `XY` | `X` followed by `Y` (not in `[]`)
 `X\|Y` | either `X` or `Y` (not in `[]`)
