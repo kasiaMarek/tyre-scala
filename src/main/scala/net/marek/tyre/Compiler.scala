@@ -3,7 +3,7 @@ package net.marek.tyre
 class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
   import context._
 
-  type Continuation[T, IS <: Tuple] = Automaton[T *: IS]
+  type Continuation[-T, IS <: Tuple] = Automaton[T *: IS]
   type EmptyContinuation = Automaton[R *: IN]
 
   def compile[IS <: Tuple, T](tyre: Tyre[T], continuation: Continuation[T, IS]): Automaton[IS] = tyre match

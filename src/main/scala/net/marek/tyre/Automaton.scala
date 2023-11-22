@@ -75,23 +75,25 @@ class Context[R <: Tuple]:
         lazy val stack = newStack
 
   // Init states
-  sealed trait InitState[IS <: Tuple]:
+  sealed trait InitState[-IS <: Tuple]:
+    type OS <: Tuple
     def state: State[?]
     def thread(initStack: IS): Thread
-
-  trait InitNonAcceptingState[IS <: Tuple] extends InitState[IS]:
-    self =>
-    type OS <: Tuple
-    lazy val state: NonAcceptingState[OS]
     def op(is: IS): OS
+
+  trait InitNonAcceptingState[-IS <: Tuple] extends InitState[IS]:
+    self =>
+    lazy val state: NonAcceptingState[OS]
     def thread(initStack: IS): Thread =
       new Thread:
         type S = OS
         lazy val state = self.state
         lazy val stack = op(initStack)
 
-  case class InitAcceptingState[IS <: Tuple](op: IS => R) extends InitState[IS]:
+  case class InitAcceptingState[-IS <: Tuple](opr: IS => R) extends InitState[IS]:
+    type OS = R
     def state = AcceptingState
+    def op(is: IS): OS = opr(is)
     def thread(initStack: IS): Thread =
       new Thread:
         type S = R
@@ -110,7 +112,7 @@ class Context[R <: Tuple]:
       case AcceptingState => Some(stack)
       case _ => None
 
-  trait Automaton[IS <: Tuple]:
+  trait Automaton[-IS <: Tuple]:
 
     val initStates: List[InitState[IS]]
 
