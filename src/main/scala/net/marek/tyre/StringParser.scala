@@ -63,9 +63,7 @@ object TyreParser extends Parsers:
   private val hole = accept("hole", { case Hole(idx) => idx })
   private val literal: Parser[Char] = accept("literal", { case el: Char if !Reserved.chars(el) => el }) |
     escape ~> accept("escaped literal", { case el: Char if Reserved.chars(el) => el }) |
-    escape ~> unicodeSymbol ~> unicodeValue ~ unicodeValue ~ unicodeValue ~ unicodeValue ^^ { case h4 ~ h3 ~ h2 ~ h1 =>
-      hex(h4, h3, h2, h1).toChar
-    }
+    escape ~> unicodeSymbol ~> repN(4, unicodeValue) ^^ { case seq => hex(seq: _*).toChar }
   private val charClassIn =
     escape ~> accept("predef class", { case el: Char if CharClass.hasVal(el) => CharClass.vals(el) })
   private val charClassNotIn =
