@@ -48,8 +48,8 @@ Some specific syntax extensions have also been introduced to make writing TyRE e
 `\f` | the form feed (new page) character (`\u000C`)
 `\` | nothing but quotes (escapes) the following character if it is a special one, triggers error otherwise
 `XY` | `X` followed by `Y` (not in `[]`)
-`X\|Y` | either `X` or `Y` (not in `[]`)
-`X\|\|Y` | either `X` or `Y` - strict, see below (not in `[]`)
+`X\|Y` | `X` or `Y` - union (not in `[]`)
+`X\|\|Y` | either `X` or `Y` - tagged union, see below (not in `[]`)
 `(X)` | group `X` to override precedence (not in `[]`)
 `X*` | `X` zero or more times (not in `[]`)
 `X+` | `X` at least once (one or more times) (not in `[]`)
@@ -58,7 +58,9 @@ Some specific syntax extensions have also been introduced to make writing TyRE e
 
 Patterns other than the above (e.g. exact quantifiers, intersection with `&&`, hexadecimal or Unicode characters) are not supported (yet).
 
-If possible, regular alternation (`|`) merges alternative results into a single type. Strict alternation always keeps the exact shape of the expression. E.g. `ab|cd` results in `(Char, Char)` while `ab||cd` yields `Either[(Char, Char), (Char, Char)]`. When merging is impossible, both versions give the same result - so `ab|c` and `ab||c` yields `Either[(Char, Char), Char]`.
+Regular alternation (`|`) corresponds to a union type while tagged one (`||`) corresponds to `Either`.
+E.g. `ab|cd` results in `(Char, Char)` while `ab||cd` yields `Either[(Char, Char), (Char, Char)]`;
+`ab|c` yields `(Char, Char) | Char` while `ab||c` - `Either[(Char, Char), Char]`.
 
 TyRE always parses the whole input - you can think of it like `^` and `$` from traditional regular expressions being inserted implicitly at the beginning and end of the pattern. No boundary matchers are thus supported.
 
@@ -70,7 +72,7 @@ Special characters must be escaped with a backslash, e.g. `\.` matches a dot and
 
 TyRE is more regular in escaping requirements than traditional regexes - characters have to be always escaped if they have special meaning in the given context. E.g. dash is not allowed at the beginning or end of `[]` character class. So this `[+-]` won't work. You have to write `[+\-]`.
 
-|special charcter(s)|outside `[]`|inside `[]`|purpose|
+|special character(s)|outside `[]`|inside `[]`|purpose|
 |:------------------|:-----------|:----------|:------|
 `\` | yes | yes | escape (quote) next character (not allowed for non-special characters) or mark predefined character or character class
 `.` | yes | no | match any character
