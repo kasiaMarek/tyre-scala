@@ -154,5 +154,3 @@ private object TyreParser extends Parsers:
 private object End
 private case class Hole(idx: Int)
 private type Token = Char | Hole | End.type
-
-

@@ -3,7 +3,7 @@ package net.marek.tyre.pattern
 import net.marek.tyre.utils.Range
 
 // Re - untyped regular expression, used to buuld expressions from string representations
-private sealed trait Re
+sealed private trait Re
 
 private case object ReAny extends Re:
   override def toString(): String = "."

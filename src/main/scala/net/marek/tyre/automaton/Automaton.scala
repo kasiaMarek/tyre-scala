@@ -12,7 +12,7 @@ E - single element on stack
 T - elementary TyRE type
  */
 
-private sealed trait Routine[IS <: Tuple, OS <: Tuple]:
+sealed private trait Routine[IS <: Tuple, OS <: Tuple]:
   def execOn(stack: IS, c: Char): OS
 
 private case object Empty extends Routine[EmptyTuple, EmptyTuple]:

@@ -2,7 +2,7 @@ package net.marek.tyre.automaton
 
 import net.marek.tyre.*
 
-private[tyre] class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
+private[tyre] class TyreCompiler[IN <: Tuple, R](val context: Context[R *: IN]):
   import context._
 
   private type Continuation[-T, IS <: Tuple] = Automaton[T *: IS]
@@ -45,7 +45,7 @@ private[tyre] class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
 
     case Star(re: Tyre[t]) =>
       val ec: Context[t *: IS] = Context[t *: IS]
-      val compiler = new Compiler(ec)
+      val compiler = new TyreCompiler(ec)
       val innerAutomaton = compiler.compile[IS, t](re, compiler.emptyContinuation)
 
       Loop[IS, t](compiler.context, innerAutomaton, continuation).build
@@ -185,5 +185,5 @@ private[tyre] class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
       ): List[Transition[List[T] *: A]] =
         alreadyFixed.collectFirst(_.get(transition) match { case Some(v) => v }).getOrElse(default)
 
-private[tyre] object Compiler:
-  def apply[T]: Compiler[EmptyTuple, T] = new Compiler(Context[T *: EmptyTuple])
+private[tyre] object TyreCompiler:
+  def apply[T]: TyreCompiler[EmptyTuple, T] = new TyreCompiler(Context[T *: EmptyTuple])
