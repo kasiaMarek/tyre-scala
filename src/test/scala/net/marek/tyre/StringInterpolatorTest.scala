@@ -9,11 +9,12 @@ class StringInterpolatorTest extends AnyFunSuite:
   test("Tyre construction"):
     assertCompiles("""tyre"x"""")
     assertDoesNotCompile("""tyre"x|*"""")
-    @unused val te: Tyre[Char] = tyre"a|b"
-    @unused val tes: Tyre[Either[Char, Char]] = tyre"a||b"
-    @unused val tt: Tyre[(Char, Char, Char, Char, Char)] = tyre"abcde"
+    @unused val _: Tyre[Char] = tyre"a|b"
+    @unused val _: Tyre[Either[Char, Char]] = tyre"a||b"
+    @unused val _: Tyre[(Char, Char, Char, Char, Char)] = tyre"abcde"
     val tm = tyre"a|b".map(_ => 'o')
-    @unused val t: Tyre[Either[Char, (Char, Char, Char)]] = tyre"${tm}|lpk"
+    @unused val _: Tyre[Either[Char, (Char, Char, Char)]] = tyre"${tm}||lpk"
+    @unused val _: Tyre[Char | (Char, Char, Char)] = tyre"${tm}|lpk"
 
   test("Tyre escape sequence"):
     val tb: Tyre[(Char,Char)] = tyre"x\\"

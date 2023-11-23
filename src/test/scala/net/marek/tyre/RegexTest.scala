@@ -53,7 +53,7 @@ class RegexTest extends AnyFunSuite:
     case class Money(amount: BigDecimal, currency: Symbol)
     val pt = tyre"[$$€£₣₿]\h?[1-9]\d*(\.\d\d)?"
     val st = tyre"[1-9]\d*(\.\d\d)? ?[$$€£₣₿]"
-    val mt = tyre"$pt|$st".map: e =>
+    val mt = tyre"$pt||$st".map: e =>
       val t = e.fold(
         l => (l(0), l(2) :: l(3), l(4)),
         r => (r(4), r(0) :: r(1), r(2))
