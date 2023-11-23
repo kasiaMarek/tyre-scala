@@ -4,7 +4,8 @@ import scala.quoted.Expr
 import scala.quoted.Quotes
 import scala.quoted.ToExpr
 
-case class Range(from: Char, to: Char)
+case class Range(from: Char, to: Char):
+  def contains(c: Char): Boolean = c >= from && c <= to
 
 object Range:
   def apply(char: Char): Range = Range(char, char)

@@ -1,8 +1,8 @@
 package net.marek.tyre
 
 import org.scalatest.funsuite.AnyFunSuite
-
 import java.time.LocalTime
+import NumberHelper.*
 
 class RegexTest extends AnyFunSuite:
 
@@ -14,8 +14,8 @@ class RegexTest extends AnyFunSuite:
     assertResult(None)(tm.run("-"))
 
   test("Time parser"):
-    val ht = tyre"[0-1]\d|2[0-3]".map(number(_, _))
-    val mt = tyre"[0-5]\d".map(number(_, _))
+    val ht = tyre"[0-1]\d|2[0-3]".map(decimal(_, _))
+    val mt = tyre"[0-5]\d".map(decimal(_, _))
     val tt = tyre"$ht:$mt".map: t =>
       val (h, _, m) = t
       LocalTime.of(h, m)
@@ -58,8 +58,8 @@ class RegexTest extends AnyFunSuite:
         l => (l(0), l(2) :: l(3), l(4)),
         r => (r(4), r(0) :: r(1), r(2))
       )
-      val integral = number(t(1)*)
-      val fraction = t(2).map(p => (number(p(1), p(2))))
+      val integral = decimal(t(1)*)
+      val fraction = t(2).map(p => (decimal(p(1), p(2))))
       (t(0), bigDecimal(integral, fraction, 2))
     val tm = mt.compile()
     val amount = tm.run("€ 1643.52").map(t => Money(t(1), t(0)))
@@ -85,11 +85,6 @@ class RegexTest extends AnyFunSuite:
     assertResult(None)(cm.run("""51°06'36.3"N"""))
     assertResult(None)(cm.run("foo"))
 
-  def digit(c: Char): Int = c - '0'
-  def decimal(c: Char, p: Int): Int =
-    digit(c)*10.pow(p)
-  def number(cs: Char*): Int =
-      cs.reverse.zipWithIndex.map(decimal(_, _)).sum
   def bigDecimal(int: Int, fract: Option[Int], scale: Int): BigDecimal =
     val mult = 10.pow(scale)
     ((BigDecimal(int) * BigDecimal(mult) + BigDecimal(fract.getOrElse(0))) / BigDecimal(mult)).setScale(scale)
@@ -105,10 +100,5 @@ class RegexTest extends AnyFunSuite:
     case s => s.toString
   def int(x: Any): Int = string(x).toInt
   def double(x: Any): Double = string(x).toDouble
-
-  extension (n: Int)
-    def pow(p: Int): Int = p match
-      case x if x > 0 => n * n.pow(x-1)
-      case _ => 1
 
 
