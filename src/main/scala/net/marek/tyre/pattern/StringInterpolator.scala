@@ -1,10 +1,12 @@
-package net.marek.tyre
+package net.marek.tyre.pattern
 
 import scala.quoted.Expr
 import scala.quoted.Quotes
 import scala.quoted.Varargs
 import scala.quoted.ToExpr
 import scala.quoted.quotes
+import net.marek.tyre.*
+import net.marek.tyre.utils.Range.given
 
 extension (inline sc: StringContext) transparent inline def tyre(inline args: Any*) = ${ tyreImpl('{ sc }, '{ args }) }
 
@@ -80,6 +82,6 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
   toTyre(re) match
     case '{ $re: Tyre[t] } => '{ ${ re }.asInstanceOf[Tyre[t]] }
 
-given ToExpr[CastOp] with
+private given ToExpr[CastOp] with
   def apply(c: CastOp)(using Quotes) = c match
     case CastOp.Stringify => '{ CastOp.Stringify }

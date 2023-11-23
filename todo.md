@@ -10,13 +10,13 @@ TODO
 - [X] Allow special character in brackets without escaping (eg. .)
 - [X] Allow character classes in brackets (eg. [^\s])
 - [ ] Write readme
-- [ ] Stringify - allow easily flatten matched data to string
-- [ ] Separate API from internals (packages)
+- [X] Stringify - allow easily flatten matched data to string
+- [X] Separate API from internals (packages)
 
 ### BACKLOG
 
 - [ ] Check if TyRE matching is greedy
-- [ ] Support for Unicode character values (\uhhhh)
+- [X] Support for Unicode character values (\uhhhh)
 - [ ] Allow escaped characters in ranges (eg. [\t-s]) and generally in brackets (eg. [^\s])
 - [ ] Support for singleton types
 - [ ] Helper functions for handling digits and numbers

@@ -1,7 +1,7 @@
-package net.marek.tyre
+package net.marek.tyre.pattern
 
 import org.scalatest.funsuite.AnyFunSuite
-
+import net.marek.tyre.utils.Range
 import Re.char
 
 class StringParserTest extends AnyFunSuite:

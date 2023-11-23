@@ -1,4 +1,4 @@
-package net.marek.tyre
+package net.marek.tyre.automaton
 
 import scala.collection.mutable
 import net.marek.tyre.diagnostic.Renderer
@@ -12,27 +12,27 @@ E - single element on stack
 T - elementary TyRE type
  */
 
-sealed trait Routine[IS <: Tuple, OS <: Tuple]:
+private sealed trait Routine[IS <: Tuple, OS <: Tuple]:
   def execOn(stack: IS, c: Char): OS
 
-case object Empty extends Routine[EmptyTuple, EmptyTuple]:
+private case object Empty extends Routine[EmptyTuple, EmptyTuple]:
   def execOn(stack: EmptyTuple, c: Char): EmptyTuple = Tuple()
 
-case class PushChar[IS <: Tuple]() extends Routine[IS, Char *: IS]:
+private case class PushChar[IS <: Tuple]() extends Routine[IS, Char *: IS]:
   def execOn(stack: IS, c: Char): Char *: IS = c *: stack
 
-case class Transform[IS <: Tuple, OS <: Tuple](op: IS => OS) extends Routine[IS, OS]:
+private case class Transform[IS <: Tuple, OS <: Tuple](op: IS => OS) extends Routine[IS, OS]:
   def execOn(stack: IS, c: Char): OS = op(stack)
 
-case class Compose[IS <: Tuple, S <: Tuple, OS <: Tuple](r1: Routine[IS, S], r2: Routine[S, OS])
+private case class Compose[IS <: Tuple, S <: Tuple, OS <: Tuple](r1: Routine[IS, S], r2: Routine[S, OS])
   extends Routine[IS, OS]:
   def execOn(stack: IS, c: Char): OS = r2.execOn(r1.execOn(stack, c), c)
 
-case class OnTail[H, IS <: Tuple, OS <: Tuple](r: Routine[IS, OS]) extends Routine[H *: IS, H *: OS]:
+private case class OnTail[H, IS <: Tuple, OS <: Tuple](r: Routine[IS, OS]) extends Routine[H *: IS, H *: OS]:
   def execOn(stack: H *: IS, c: Char): H *: OS = stack match
     case h *: t => h *: r.execOn(t, c)
 
-class Context[R <: Tuple]:
+private class Context[R <: Tuple]:
 
   // States
   sealed trait State[S <: Tuple]:

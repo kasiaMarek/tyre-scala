@@ -1,12 +1,14 @@
-package net.marek.tyre
+package net.marek.tyre.automaton
 
-class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
+import net.marek.tyre.*
+
+private[tyre] class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
   import context._
 
-  type Continuation[-T, IS <: Tuple] = Automaton[T *: IS]
-  type EmptyContinuation = Automaton[R *: IN]
+  private type Continuation[-T, IS <: Tuple] = Automaton[T *: IS]
+  private type EmptyContinuation = Automaton[R *: IN]
 
-  def compile[IS <: Tuple, T](tyre: Tyre[T], continuation: Continuation[T, IS]): Automaton[IS] = tyre match
+  private def compile[IS <: Tuple, T](tyre: Tyre[T], continuation: Continuation[T, IS]): Automaton[IS] = tyre match
 
     case Pred(f) =>
       val initState =
@@ -43,7 +45,7 @@ class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
 
     case Star(re: Tyre[t]) =>
       val ec: Context[t *: IS] = Context[t *: IS]
-      val compiler = Compiler(ec)
+      val compiler = new Compiler(ec)
       val innerAutomaton = compiler.compile[IS, t](re, compiler.emptyContinuation)
 
       Loop[IS, t](compiler.context, innerAutomaton, continuation).build
@@ -56,11 +58,11 @@ class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
 
   def compile(tyre: Tyre[R]): Automaton[IN] = compile[IN, R](tyre, emptyContinuation)
 
-  def emptyContinuation: EmptyContinuation =
+  private def emptyContinuation: EmptyContinuation =
     new EmptyContinuation:
       val initStates = List(new InitAcceptingState(identity))
 
-  class Loop[IS <: Tuple, T](
+  private class Loop[IS <: Tuple, T](
     val context: Context[T *: IS],
     innerAutomaton: context.Automaton[IS],
     continuation: Continuation[List[T], IS]
@@ -160,14 +162,14 @@ class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
             def test(c: Char): Boolean = transition.nextState.test(c)
       fixedTransitions
 
-    trait RefinedInitNonAcceptingState[T, IS <: Tuple] extends InitNonAcceptingState[IS]:
+    private trait RefinedInitNonAcceptingState[T, IS <: Tuple] extends InitNonAcceptingState[IS]:
       type Tail <: Tuple
       type OS = List[T] *: Tail
       lazy val state: NonAcceptingState[OS]
       def op(x: IS): Nil.type *: Tail = Nil *: opTail(x)
       def opTail(x: IS): Tail
 
-    trait AlreadyFixedTransition:
+    protected trait AlreadyFixedTransition:
       type B <: Tuple
       def get[A <: Tuple](transition: context.Transition[A]): Option[List[Transition[List[T] *: A]]] =
         if transition == from
@@ -177,8 +179,11 @@ class Compiler[IN <: Tuple, R](val context: Context[R *: IN]):
       def to: List[Transition[List[T] *: B]]
 
     extension (alreadyFixed: List[AlreadyFixedTransition])
-      def getOrElse[A <: Tuple](
+      private def getOrElse[A <: Tuple](
         transition: context.Transition[A],
         default: => List[Transition[List[T] *: A]]
       ): List[Transition[List[T] *: A]] =
         alreadyFixed.collectFirst(_.get(transition) match { case Some(v) => v }).getOrElse(default)
+
+private[tyre] object Compiler:
+  def apply[T]: Compiler[EmptyTuple, T] = new Compiler(Context[T *: EmptyTuple])

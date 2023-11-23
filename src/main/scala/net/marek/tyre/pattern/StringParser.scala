@@ -1,11 +1,12 @@
-package net.marek.tyre
+package net.marek.tyre.pattern
 
 import scala.util.parsing.combinator.Parsers
 import scala.util.parsing.input.Reader
 import scala.util.parsing.input.Position
 import scala.Conversion
+import net.marek.tyre.utils.Range
 
-object TyreParser extends Parsers:
+private object TyreParser extends Parsers:
   type Elem = Token
 
   private enum Reserved(val char: Char, val escapedInBrackets: Boolean):
@@ -50,7 +51,7 @@ object TyreParser extends Parsers:
     def hasVal(c: Char): Boolean = vals.keySet(c)
     def hasNeg(c: Char): Boolean = negs.keySet(c)
 
-  import NumberHelper.*
+  import net.marek.tyre.utils.NumberHelper.*
 
   private val unicodeSymbol: Parser[Char] = accept("unicode symbol", { case 'u' => 'u' })
   private val unicodeValue: Parser[Char] = accept("unicode value", { case h: Char if isHex(h) => h })
@@ -135,22 +136,23 @@ object TyreParser extends Parsers:
       case Success(result, next) => Some(result)
       case _ => None
 
-class TokenReader(seq: Seq[Token]) extends Reader[Token]:
-  override def atEnd: Boolean = seq.isEmpty
-  override def first: Token = seq(0)
-  // TODO: implement position
-  override def pos: Position =
-    new Position {
-      override def line: Int = 0
-      override def column: Int = 0
-      override protected def lineContents: String = ""
-    }
-  override def rest: Reader[Token] = TokenReader(seq.tail)
+  class TokenReader(seq: Seq[Token]) extends Reader[Token]:
+    override def atEnd: Boolean = seq.isEmpty
+    override def first: Token = seq(0)
+    // TODO: implement position
+    override def pos: Position =
+      new Position {
+        override def line: Int = 0
+        override def column: Int = 0
+        override protected def lineContents: String = ""
+      }
+    override def rest: Reader[Token] = TokenReader(seq.tail)
 
-object End
-case class Hole(idx: Int)
+  enum Rep:
+    case Star, Plus, QuestionMark
 
-type Token = Char | Hole | End.type
+private object End
+private case class Hole(idx: Int)
+private type Token = Char | Hole | End.type
 
-enum Rep:
-  case Star, Plus, QuestionMark
+

@@ -2,7 +2,7 @@ package net.marek.tyre
 
 import org.scalatest.funsuite.AnyFunSuite
 import java.time.LocalTime
-import NumberHelper.*
+import net.marek.tyre.utils.NumberHelper.*
 
 class RegexTest extends AnyFunSuite:
 

@@ -1,4 +1,4 @@
-package net.marek.tyre
+package net.marek.tyre.utils
 
 object NumberHelper:
 
