@@ -1,19 +1,98 @@
-TyRE
+TyRE - a typed regex parser
 ====
 
-*TyRE* is a typed regex parser library.
+*TyRE* provides the following features compared to standard Java regex matcher:
+  1. compile time validation
+    - employing Scala 3 macros, TyRE parses provided regex pattern at compile-time,
+  1. syntax tree result
+    - as a result of parsing TyRE returns a syntax tree, which at core is a combination on `Unit`, `Char`, `Tuple`, `List`, and `Either` types, but it can be freely transformed by the user.
 
-Goals: TODO
+Goals: Main goal of this library is to provide safer regex parsing compared to Java regex matcher. This is achieved through compile time regex validation and refined return type compared to `java.util.regex.Matcher` with its arbitrary number of capture groups and possible `null` captures.
 
-Getting started
+Currently, *TyRE* is not production ready and is not yet released. However, we welcome you to download the source code and play around.
+
+Understanding *TyRE*
 ---------------
+`Tyre` is a type constructor parameterized by the type of the parse tree. The result of parsing a `word: String` using a `pattern: Tyre[R]` will be `Option[R]`, where `None` denotes that `word` did not match `pattern`.
 
-TODO
+*TyRE* patterns can be build through smart constructors. The following set of constructors is complete:
+1. two unit patterns,
+    ```Scala
+    // matches an empty string
+    Tyre.epsilon: Tyre[Unit]
+    // matches a single character satisfying predicate `f`
+    Pred.pred(f: Char => Boolean): Tyre[Char]
+    ```
+1. three parser combinators,
+    ```Scala
+    // sequence of patterns
+    Tyre[R]#<*>[S](re: Tyre[S]): Tyre[(R, S)]
+    // alternative of patterns
+    Tyre[R]#<|>[S](re: Tyre[S]): Tyre[Either[R, S]]
+    // one or more repetitions of a pattern (Kleene star)
+    Tyre[R]#rep: Tyre[List[R]]
+    ```
+1. and a map function (Tyre is a functor).
+    ```Scala
+    Tyre[R]#map[S](f: R => S): Tyre[S]
+    ```
+
+Please note that recursive definitions cannot be used.
+
+Though these constructors can be used explicitly, it's usually more convenient to use string literals for creating patterns. The syntax of string literals is at large standard, its full description can be found in the [Supported syntax](#supported-syntax) section.
 
 Basic usage
 -----------
+To use *TyRE* for pattern matching you have to first define your `Tyre` pattern. This can be done using string interpolation, e.g.
+```Scala
+val example: Tyre[(Char, Char)] = tyre"[a-z]t"
+```
+The syntax of Tyre patterns is very similar to the standard regex syntax, with a few exceptions, of which the most relevant are:
+  1. "!\<OP\>" is a special TyRE operator for conversions
+      - "!s" - converts the parse tree to a string
+        ```Scala
+        tyre"([a-z]t)!s" : Tyre[String]
+        ```
+  1. both "|" and "||" serve as alternation but differ in the result parse tree
+      ```Scala
+      // `|` corresponds to a union
+      val union: Tyre[String | Char] = tyre"([a-z]t)!s|a"
+      // `||` corresponds to a tagged union
+      val taggedUnion: Tyre[Either[String, Char]] = tyre"([a-z]t)!s||a"
+      ```
+  1. not all standard syntax is supported, the full syntax can be found in the [Supported syntax](#supported-syntax) section.
 
-TODO
+Next you need to compile the pattern into our enriched automaton:
+```Scala
+val parser: Automaton[(Char, Char)] = example.compile()
+```
+The `Automaton[T]` trait has a single public method `def run(str: String): Option[T]`, which parses the input string. Note that the method will only return the parse tree if the whole input string matches the pattern.
+```Scala
+parser.run("zt") // = Some(('z', 't'))
+parser.run("zx") // = None
+```
+
+### Examples
+```Scala
+val example: Tyre[List[Char]] = tyre"[a-z]||[0-9]*".map:
+  case Left(c) => List(c)
+  case Right(list) => list
+val parser = example.compile()
+
+parser.run("c") // = Some(List('c'))
+parser.run("123") // = Some(List('1', '2', '3'))
+parser.run("z23") // = None
+```
+
+```Scala
+val t1: Tyre[Char] = tyre"[a-z]|[0-9]"
+val t2: Tyre[String] = tyre"(${t1}*)!s ?:\)".map(_._1)
+val parser = t2.compile()
+
+parser.run("a12b :)") // = Some("a12b")
+parser.run(":)") // = Some("")
+parser.run("Ab :)") // = None
+```
 
 Supported syntax
 ----------------
