@@ -16,7 +16,7 @@ Understanding *TyRE*
 `Tyre` is a type constructor parameterized by the type of the parse tree. The result of parsing a `word: String` using a `pattern: Tyre[R]` will be `Option[R]`, where `None` denotes that `word` did not match `pattern`.
 
 *TyRE* patterns can be build through smart constructors. The following set of constructors is complete:
-1. two unit patterns,
+1. two primitive patterns,
     ```Scala
     // matches an empty string
     Tyre.epsilon: Tyre[Unit]
@@ -86,7 +86,7 @@ parser.run("z23") // = None
 
 ```Scala
 val t1: Tyre[Char] = tyre"[a-z]|[0-9]"
-val t2: Tyre[String] = tyre"(${t1}*)!s ?:\)".map(_._1)
+val t2: Tyre[String] = tyre"(${t1}*)!s ?:\)".map(_(0))
 val parser = t2.compile()
 
 parser.run("a12b :)") // = Some("a12b")
