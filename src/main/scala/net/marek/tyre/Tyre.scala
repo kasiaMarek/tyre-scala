@@ -26,6 +26,9 @@ private case object Epsilon extends Tyre[Unit]:
 private case class Conv[R1, +R2](tyre: Tyre[R1], f: R1 => R2) extends Tyre[R2]:
   override def toString(): String = s"f($tyre)"
 
+object Tyre:
+  def epsilon: Tyre[Unit] = Epsilon
+
 object Pred:
   def pred(f: Char => Boolean): Tyre[Char] = Pred(f)
   def any: Tyre[Char] = Pred(_ => true)
