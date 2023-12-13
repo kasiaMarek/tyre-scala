@@ -53,6 +53,6 @@ class AutomatonTest extends AnyFunSuite:
 	test("Star in Star"):
 		val tyre = ('A').rep.rep
 		val m = tyre.compile()
-		assert(m.run("AAA").contains(List(List('A'), List('A'), List('A'))))
+		assert(m.run("AAA").contains(List(List('A', 'A', 'A'))))
 		assert(m.run("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA").isDefined)
 		assert(m.run("AAX").isEmpty)
