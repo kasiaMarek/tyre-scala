@@ -84,7 +84,7 @@ private[tyre] class TyreCompiler[IN <: Tuple, R](val context: Context[R *: IN]):
                         is.state.next.flatMap(fixTransition[is.OS](fixableStates, _))
                       def test(c: Char): Boolean = is.state.test(c)
                     def opTail(x: IS) = is.op(x)
-          fixableStates ++
+          val continuationStates =
             continuation.initStates.map:
               case is: InitAcceptingState[?] =>
                 new InitAcceptingState((x: IS) => is.op(Nil *: x))
@@ -93,6 +93,7 @@ private[tyre] class TyreCompiler[IN <: Tuple, R](val context: Context[R *: IN]):
                   type OS = is.OS
                   lazy val state = is.state
                   def op(x: IS) = is.op(Nil *: x)
+          fixableStates ++ continuationStates
 
     private def fixTransition[S <: Tuple](
       initStates: List[RefinedInitNonAcceptingState[T, IS]],
@@ -126,7 +127,7 @@ private[tyre] class TyreCompiler[IN <: Tuple, R](val context: Context[R *: IN]):
           case l *: e *: t =>
             is.op(t) match
               case Nil *: tt => (l :+ e) *: tt
-      withContinuation ++ looped
+      looped ++ withContinuation
 
     private def transitionWithTail[S <: Tuple, A <: Tuple](
       head: context.AcceptingTransition[S],

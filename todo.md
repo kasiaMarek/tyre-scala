@@ -9,18 +9,20 @@ TODO
 - [X] Add handling of character classes (\s . \w etc.)
 - [X] Allow special character in brackets without escaping (eg. .)
 - [X] Allow character classes in brackets (eg. [^\s])
-- [ ] Write readme
+- [X] Write readme
 - [X] Stringify - allow easily flatten matched data to string
 - [X] Separate API from internals (packages)
 
 ### BACKLOG
 
-- [ ] Check if TyRE matching is greedy
+- [X] Check if TyRE matching is greedy
 - [X] Support for Unicode character values (\uhhhh)
 - [ ] Allow escaped characters in ranges (eg. [\t-s]) and generally in brackets (eg. [^\s])
 - [ ] Support for singleton types
 - [ ] Helper functions for handling digits and numbers
 - [ ] Unicode mode
+- [ ] Scaladoc
+- [ ] Prepare deployment
 
 ### TO CONSIDER
 

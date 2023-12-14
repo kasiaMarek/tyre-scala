@@ -1,4 +1,5 @@
 .*
+*.worksheet.sc
 !.gitignore
 !.scalafmt.conf
 !.github/
