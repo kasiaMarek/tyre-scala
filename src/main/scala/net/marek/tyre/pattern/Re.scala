@@ -8,6 +8,9 @@ sealed private trait Re
 private case object ReAny extends Re:
   override def toString(): String = "."
 
+private case class ReSingle(s: Char & Singleton) extends Re:
+  override def toString(): String = s"$s"
+
 private case class ReIn(cs: List[Range]) extends Re:
   override def toString(): String = cs
     .map:
@@ -50,7 +53,7 @@ private case class ReHole(index: Int) extends Re:
   override def toString(): String = s"@$index"
 
 private object Re:
-  def char(c: Char): ReIn = ReIn(List(Range(c, c)))
+  def char(c: Char & Singleton): ReSingle = ReSingle(c)
 
 private enum CastOp(val symbol: Char):
   case Stringify extends CastOp('s')

@@ -9,6 +9,8 @@ sealed trait Tyre[+R]:
   def <|>[S](re: Tyre[S]): Tyre[Either[R, S]] = Or(this, re)
   def map[S](f: R => S): Tyre[S] = Conv(this, f)
 
+private case class Single[T <: Char & Singleton](s: T) extends Tyre[T]
+
 private case class Pred(f: Char => Boolean) extends Tyre[Char]
 
 private case class Or[+R1, +R2](left: Tyre[R1], right: Tyre[R2]) extends Tyre[Either[R1, R2]]:
@@ -30,6 +32,7 @@ object Tyre:
   def epsilon: Tyre[Unit] = Epsilon
 
 object Pred:
+  def single(s: Char & Singleton): Tyre[s.type] = Single(s)
   def pred(f: Char => Boolean): Tyre[Char] = Pred(f)
   def any: Tyre[Char] = Pred(_ => true)
   def in(cs: List[Range]): Tyre[Char] = Pred(c => cs.exists(r => r.from <= c && r.to >= c))
