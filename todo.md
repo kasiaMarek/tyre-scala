@@ -17,7 +17,7 @@ TODO
 
 - [X] Check if TyRE matching is greedy
 - [X] Support for Unicode character values (\uhhhh)
-- [ ] Allow escaped characters in ranges (eg. [\t-s]) and generally in brackets (eg. [^\s])
+- [X] Allow escaped characters in ranges (eg. [\t-s]) and generally in brackets (eg. [^\s])
 - [ ] Support for singleton types
 - [ ] Helper functions for handling digits and numbers
 - [ ] Unicode mode

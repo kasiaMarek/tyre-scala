@@ -41,15 +41,20 @@ private object TyreParser extends Parsers:
     case vSpace extends CharClass('v', List('\n', '\r', '\f', '\u000B', '\u0085', '\u2028', '\u2029'))
     case word extends CharClass('w', List('_', Range('a', 'z'), Range('A', 'Z'), Range('0', '9')))
     case digit extends CharClass('d', List(Range('0', '9')))
-    case tab extends CharClass('t', List('\t'))
-    case nl extends CharClass('\n', List('\n'))
-    case cr extends CharClass('\r', List('\r'))
-    case ff extends CharClass('\f', List('\u000C'))
   private object CharClass:
     val vals = values.map(p => p.input -> p.output).toMap
     val negs = values.map(p => p.input.toUpper -> p.output).toMap
     def hasVal(c: Char): Boolean = vals.keySet(c)
     def hasNeg(c: Char): Boolean = negs.keySet(c)
+
+  private enum EscapedSeq(val input: Char, val output: Char):
+    case tab extends EscapedSeq('t', '\t')
+    case nl extends EscapedSeq('n', '\n')
+    case cr extends EscapedSeq('r', '\r')
+    case ff extends EscapedSeq('f', '\u000C')
+  private object EscapedSeq:
+    val vals = values.map(p => p.input -> p.output).toMap
+    def hasVal(c: Char): Boolean = vals.keySet(c)
 
   import net.marek.tyre.utils.NumberHelper.*
 
@@ -64,7 +69,8 @@ private object TyreParser extends Parsers:
   private val hole = accept("hole", { case Hole(idx) => idx })
   private val literal: Parser[Char] = accept("literal", { case el: Char if !Reserved.chars(el) => el }) |
     escape ~> accept("escaped literal", { case el: Char if Reserved.chars(el) => el }) |
-    escape ~> unicodeSymbol ~> repN(4, unicodeValue) ^^ { case seq => hex(seq: _*).toChar }
+    escape ~> unicodeSymbol ~> repN(4, unicodeValue) ^^ { case seq => hex(seq: _*).toChar } |
+    escape ~> accept("predef class", { case el: Char if EscapedSeq.hasVal(el) => EscapedSeq.vals(el) })
   private val charClassIn =
     escape ~> accept("predef class", { case el: Char if CharClass.hasVal(el) => CharClass.vals(el) })
   private val charClassNotIn =
