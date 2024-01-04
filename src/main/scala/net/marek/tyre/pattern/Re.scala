@@ -57,3 +57,4 @@ private object Re:
 
 private enum CastOp(val symbol: Char):
   case Stringify extends CastOp('s')
+  case Literal extends CastOp('l')

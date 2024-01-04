@@ -75,6 +75,26 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
     case ReOpt(re) =>
       toTyre(re) match
         case '{ $ree: Tyre[t1] } => '{ Opt(${ ree }) }
+    case ReCast(ReIn(cs), CastOp.Literal) =>
+      assert(cs.map(_.size).sum <= 16)
+      val allChars = cs.flatMap(_.getChars)
+
+      def makeSingle(c : Char): Expr[Tyre[?]] = '{ Pred.single( ${ Expr(c) } ) }
+
+      def loop(acc: Expr[Tyre[?]], cs: List[Char]): Expr[Tyre[?]]  =
+        cs match
+          case Nil => acc
+          case c :: tail =>
+            loop(acc, tail) match
+              case '{ $acce: Tyre[t] } =>
+                makeSingle(c) match
+                  case '{ $s } => '{ OrM($s , ${ acce }) }
+
+      allChars match
+        case Nil => '{ Pred.empty }
+        case c :: Nil => '{ Pred.single( ${ Expr(c) } ) }
+        case c :: c1 :: Nil => '{ OrM(Pred.single( ${ Expr(c) } ), Pred.single( ${ Expr(c1) } )) }
+        case c :: tail => loop( '{ Pred.single( ${ Expr(c) } ) }, tail)
     case ReCast(re, cast) =>
       toTyre(re) match
         case '{ $ree: Tyre[t1] } => '{ Cast(${ ree }, ${ Expr(cast) }) }
@@ -86,3 +106,4 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
 private given ToExpr[CastOp] with
   def apply(c: CastOp)(using Quotes) = c match
     case CastOp.Stringify => '{ CastOp.Stringify }
+    case CastOp.Literal => '{ CastOp.Literal }

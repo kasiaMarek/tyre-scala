@@ -35,6 +35,7 @@ object Pred:
   def single(s: Char & Singleton): Tyre[s.type] = Single(s)
   def pred(f: Char => Boolean): Tyre[Char] = Pred(f)
   def any: Tyre[Char] = Pred(_ => true)
+  def empty: Tyre[Nothing] = Pred(_ => false).map(_ => throw new RuntimeException("impossible"))
   def in(cs: List[Range]): Tyre[Char] = Pred(c => cs.exists(r => r.from <= c && r.to >= c))
   def notIn(cs: List[Range]): Tyre[Char] = Pred(c => cs.forall(r => r.from > c || r.to < c))
   def char(c: Char): Tyre[Char] = Pred(_ == c)

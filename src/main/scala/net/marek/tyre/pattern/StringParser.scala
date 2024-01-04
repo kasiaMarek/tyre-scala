@@ -78,16 +78,24 @@ private object TyreParser extends Parsers:
   private val inBracketSpecial =
     accept("not escaped special", { case el: Char if !Reserved.isEscapedInBrackets(el) => el })
 
+  private val literalInBracket = literal | inBracketSpecial
+
   private val rangeOrLiteralInBrackets =
-    literal ~ opt(dash ~> literal) ^^ {
+    literalInBracket ~ opt(dash ~> literalInBracket) ^^ {
       case li1 ~ None => List(Range(li1, li1))
       case start ~ Some(end) => List(Range(start, end))
-    } | inBracketSpecial ^^ { case li => List(Range(li, li)) }
-      | charClassIn | charClassNotIn
+    }
+
+  private val rangeOrLiteralOrCharClassInBrackets =
+    rangeOrLiteralInBrackets | charClassIn | charClassNotIn
 
   private val any =
     hole ^^ ReHole.apply
-      | lBracket ~> opt(caret) ~ rep1(rangeOrLiteralInBrackets) <~ rBracket ^^ {
+      | lBracket ~> rep1(rangeOrLiteralInBrackets) ~ (rBracket ~> opt(exclamation ~> CastOp.Literal)) ^^ {
+        case list ~ Some(cast) => ReCast(ReIn(list.flatten), cast)
+        case list ~ None => ReIn(list.flatten)
+      }
+      | lBracket ~> opt(caret) ~ rep1(rangeOrLiteralOrCharClassInBrackets) <~ rBracket ^^ {
         case Some(_) ~ list => ReNotIn(list.flatten)
         case None ~ list => ReIn(list.flatten)
       }
@@ -102,9 +110,6 @@ private object TyreParser extends Parsers:
   private val repetition: Parser[Rep] =
     star ^^ { _ => Rep.Star } | plus ^^ { _ => Rep.Plus } | questionMark ^^ { _ => Rep.QuestionMark }
 
-  private val conversion: Parser[CastOp] =
-    exclamation ~> CastOp.Stringify
-
   private val expr0: Parser[Re] =
     consumingExpr ~ opt(repetition) ^^ {
       case r ~ Some(Rep.Star) => ReStar(r)
@@ -114,8 +119,8 @@ private object TyreParser extends Parsers:
     }
 
   private val expr1: Parser[Re] =
-    expr0 ~ opt(conversion) ^^ {
-      case r ~ Some(CastOp.Stringify) => ReCast(r, CastOp.Stringify)
+    expr0 ~ opt(exclamation ~> CastOp.Stringify) ^^ {
+      case r ~ Some(cast) => ReCast(r, cast)
       case r ~ None => r
     }
 
