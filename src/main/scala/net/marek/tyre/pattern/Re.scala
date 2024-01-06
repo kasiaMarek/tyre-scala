@@ -52,9 +52,11 @@ private case object ReEpsilon extends Re:
 private case class ReHole(index: Int) extends Re:
   override def toString(): String = s"@$index"
 
+private case class ReLiteralConv(re: ReIn) extends Re:
+  override def toString(): String = s"$re!l"
+
 private object Re:
   def char(c: Char & Singleton): ReSingle = ReSingle(c)
 
 private enum CastOp(val symbol: Char):
   case Stringify extends CastOp('s')
-  case Literal extends CastOp('l')

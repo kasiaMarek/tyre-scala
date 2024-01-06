@@ -77,6 +77,7 @@ private object TyreParser extends Parsers:
     escape ~> accept("predef class", { case el: Char if CharClass.hasNeg(el) => CharClass.negs(el) })
   private val inBracketSpecial =
     accept("not escaped special", { case el: Char if !Reserved.isEscapedInBrackets(el) => el })
+  private val literalCastOp = accept("literal cast operator", { case 'l' => 'l' })
 
   private val literalInBracket = literal | inBracketSpecial
 
@@ -91,9 +92,8 @@ private object TyreParser extends Parsers:
 
   private val any =
     hole ^^ ReHole.apply
-      | lBracket ~> rep1(rangeOrLiteralInBrackets) ~ (rBracket ~> opt(exclamation ~> CastOp.Literal)) ^^ {
-        case list ~ Some(cast) => ReCast(ReIn(list.flatten), cast)
-        case list ~ None => ReIn(list.flatten)
+      | lBracket ~> rep1(rangeOrLiteralInBrackets) <~ rBracket ~ exclamation ~ literalCastOp ^^ { case list =>
+        ReLiteralConv(ReIn(list.flatten))
       }
       | lBracket ~> opt(caret) ~ rep1(rangeOrLiteralOrCharClassInBrackets) <~ rBracket ^^ {
         case Some(_) ~ list => ReNotIn(list.flatten)

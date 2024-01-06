@@ -17,11 +17,8 @@ private object OrM:
     Conv(Or(left, right), merge)
 
 private object OrMWithSingle:
-  def merge[R1 <: Singleton, R2](e: Either[R1, R2]): R1 | R2 = e match
-    case Left(v) => v
-    case Right(v) => v
-  def apply[R1 <: Singleton, R2](left: Tyre[R1], right: Tyre[R2]): Tyre[R1 | R2] =
-    Conv(Or(left, right), merge)
+  def apply[R2](c: Char & Singleton, right: Tyre[R2]): Tyre[c.type | R2] =
+    OrM(Single(c), right)
 
 private object AndF:
   def apply[R, RT <: Tuple](left: Tyre[R], right: Tyre[RT]): Tyre[R *: RT] =
@@ -41,5 +38,3 @@ private object Cast:
     case s => s.toString
   def apply[R](re: Tyre[R], op: CastOp) = op match
     case CastOp.Stringify => re.map(string)
-    case CastOp.Literal => ???
-
