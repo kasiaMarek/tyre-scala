@@ -79,16 +79,19 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
       assert(cs.map(_.size).sum <= 16, "Character class to large to create union type")
       val allChars = cs.flatMap(_.getChars)
 
-      def loop(cs: List[Char]): Expr[Tyre[?]] =
+      def loop(cs: List[Char]): Expr[?] =
         cs match
-          case Nil => '{ Pred.empty }
-          case c :: Nil => '{ Pred.single(${ Expr(c) }) }
+          case Nil => '{ ??? }
+          case c :: Nil => '{ Union.single(${ Expr(c) }) }
           case c :: tail =>
             loop(tail) match
-              case '{ $acce: Tyre[t] } =>
-                '{ OrMWithSingle(${ Expr(c) }, ${ acce }) }
+              case '{ $acce: t } =>
+                '{ Union[t](${ Expr(c) }) }
 
-      loop(allChars)
+      loop(allChars) match
+        case '{ $acce: t } =>
+          '{ Pred.in(${ Expr(cs) }).cast[t] }
+
     case ReCast(re, cast) =>
       toTyre(re) match
         case '{ $ree: Tyre[t1] } => '{ Cast(${ ree }, ${ Expr(cast) }) }
@@ -100,3 +103,7 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
 private given ToExpr[CastOp] with
   def apply(c: CastOp)(using Quotes) = c match
     case CastOp.Stringify => '{ CastOp.Stringify }
+
+private object Union:
+  def single(c: Char & Singleton): c.type = c
+  def apply[R2](c: Char & Singleton): c.type | R2 = c

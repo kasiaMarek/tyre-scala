@@ -8,6 +8,7 @@ sealed trait Tyre[+R]:
   def <*>[S](re: Tyre[S]): Tyre[(R, S)] = And(this, re)
   def <|>[S](re: Tyre[S]): Tyre[Either[R, S]] = Or(this, re)
   def map[S](f: R => S): Tyre[S] = Conv(this, f)
+  def cast[S]: Tyre[S] = map(_.asInstanceOf[S])
 
 private case class Pred(f: Char => Boolean) extends Tyre[Char]
 

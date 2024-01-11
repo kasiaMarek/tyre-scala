@@ -10,15 +10,11 @@ private object Opt:
     Conv(Or(re, Epsilon), conv)
 
 private object OrM:
-  def merge[R1, R2](e: Either[R1, R2]): R1 | R2 = e match
+  private def merge[R1, R2](e: Either[R1, R2]): R1 | R2 = e match
     case Left(v) => v
     case Right(v) => v
   def apply[R1, R2](left: Tyre[R1], right: Tyre[R2]): Tyre[R1 | R2] =
     Conv(Or(left, right), merge)
-
-private object OrMWithSingle:
-  def apply[R2](c: Char & Singleton, right: Tyre[R2]): Tyre[c.type | R2] =
-    OrM(Pred.single(c), right)
 
 private object AndF:
   def apply[R, RT <: Tuple](left: Tyre[R], right: Tyre[RT]): Tyre[R *: RT] =
