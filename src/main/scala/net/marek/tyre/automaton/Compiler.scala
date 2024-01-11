@@ -10,26 +10,6 @@ private[tyre] class TyreCompiler[IN <: Tuple, R](val context: Context[R *: IN]):
 
   private def compile[IS <: Tuple, T](tyre: Tyre[T], continuation: Continuation[T, IS]): Automaton[IS] = tyre match
 
-    case Single(s) =>
-      val initState =
-        new InitNonAcceptingState[IS]:
-          type OS = IS
-          lazy val state = new NonAcceptingState[IS]:
-            val next: List[Transition[IS]] =
-              continuation.initStates.map:
-                case is: InitAcceptingState[?] =>
-                  new AcceptingTransition[IS]:
-                    lazy val routine = Compose(PushChar(), Transform(x => is.op(x.asInstanceOf[s.type *: IS])))
-                case is: InitNonAcceptingState[?] =>
-                  new NonAcceptingTransition[IS]:
-                    type OS = is.OS
-                    lazy val nextState: NonAcceptingState[OS] = is.state
-                    lazy val routine = Compose(PushChar(), Transform(x => is.op(x.asInstanceOf[s.type *: IS])))
-            def test(c: Char) = c == s
-          def op(x: IS) = x
-      new Automaton[IS]:
-        val initStates = List(initState)
-
     case Pred(f) =>
       val initState =
         new InitNonAcceptingState[IS]:

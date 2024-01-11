@@ -18,7 +18,7 @@ private object OrM:
 
 private object OrMWithSingle:
   def apply[R2](c: Char & Singleton, right: Tyre[R2]): Tyre[c.type | R2] =
-    OrM(Single(c), right)
+    OrM(Pred.single(c), right)
 
 private object AndF:
   def apply[R, RT <: Tuple](left: Tyre[R], right: Tyre[RT]): Tyre[R *: RT] =
