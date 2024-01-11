@@ -18,11 +18,11 @@ TODO
 - [X] Check if TyRE matching is greedy
 - [X] Support for Unicode character values (\uhhhh)
 - [X] Allow escaped characters in ranges (eg. [\t-s]) and generally in brackets (eg. [^\s])
-- [ ] Support for singleton types
+- [X] Support for singleton types
 - [ ] Helper functions for handling digits and numbers
 - [ ] Unicode mode
 - [ ] Scaladoc
-- [ ] Prepare deployment
+- [X] Prepare deployment
 
 ### TO CONSIDER
 

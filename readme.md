@@ -1,6 +1,9 @@
 TyRE - a typed regex parser
 ====
 
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/kasiaMarek/tyre-scala/ci.yml)](https://github.com/kasiaMarek/tyre-scala/actions/workflows/ci.yml)
+[![Maven Central](https://img.shields.io/maven-central/v/net.marek/tyre-scala_3)](https://central.sonatype.com/artifact/net.marek/tyre-scala_3)
+
 *TyRE* provides the following features compared to standard Java regex matcher:
   1. compile time validation
     - employing Scala 3 macros, TyRE parses provided regex pattern at compile-time,
@@ -9,7 +12,7 @@ TyRE - a typed regex parser
 
 Goals: Main goal of this library is to provide safer regex parsing compared to Java regex matcher. This is achieved through compile time regex validation and refined return type compared to `java.util.regex.Matcher` with its arbitrary number of capture groups and possible `null` captures.
 
-Currently, *TyRE* is not production ready and is not yet released. However, we welcome you to download the source code and play around.
+Currently, *TyRE* is not production ready. However, we welcome you to download the released library and play around.
 
 Understanding *TyRE*
 ---------------
