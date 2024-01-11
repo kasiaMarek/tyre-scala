@@ -76,7 +76,7 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
       toTyre(re) match
         case '{ $ree: Tyre[t1] } => '{ Opt(${ ree }) }
     case ReLiteralConv(ReIn(cs)) =>
-      assert(cs.map(_.size).sum <= 16)
+      assert(cs.map(_.size).sum <= 16, "Character class to large to create union type")
       val allChars = cs.flatMap(_.getChars)
 
       def loop(cs: List[Char]): Expr[Tyre[?]] =

@@ -12,4 +12,4 @@ class ConversionTest extends AnyFunSuite:
     @unused val _: Tyre[('a' | 'b', List[Char])] = tyre"[ab]!l.*"
     @unused val _: Tyre[('a' | 'b' | 'c', List[Char])] = tyre"[a-c]!l.*"
     @unused val _: Tyre[(List['a' | 'b' | 'c' | 'w'], List[Char])] = tyre"[a-cw]!l*.*"
-    // assertDoesNotCompile(tyre"[a-\u3333]!l.*")  // to many literal types in union
+    assertDoesNotCompile("""tyre"[a-\u3333]!l.*"""")  // to many literal types in union
