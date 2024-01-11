@@ -47,6 +47,7 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
   def toTyre(re: Re)(using Quotes): Expr[Tyre[?]] = re match
     case ReEpsilon => '{ Epsilon }
     case ReAny => '{ Pred.any }
+    case ReSingle(s) => '{ Pred.single(${ Expr(s) }) }
     case ReIn(cs) => '{ Pred.in(${ Expr(cs) }) }
     case ReNotIn(cs) => '{ Pred.notIn(${ Expr(cs) }) }
     case ReAnd(re1, re2) =>
@@ -74,6 +75,23 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
     case ReOpt(re) =>
       toTyre(re) match
         case '{ $ree: Tyre[t1] } => '{ Opt(${ ree }) }
+    case ReLiteralConv(ReIn(cs)) =>
+      assert(cs.map(_.size).sum <= 16, "Character class to large to create union type")
+      val allChars = cs.flatMap(_.getChars)
+
+      def loop(cs: List[Char]): Expr[?] =
+        cs match
+          case Nil => '{ ??? }
+          case c :: Nil => '{ Union.single(${ Expr(c) }) }
+          case c :: tail =>
+            loop(tail) match
+              case '{ $acce: t } =>
+                '{ Union[t](${ Expr(c) }) }
+
+      loop(allChars) match
+        case '{ $acce: t } =>
+          '{ Pred.in(${ Expr(cs) }).cast[t] }
+
     case ReCast(re, cast) =>
       toTyre(re) match
         case '{ $ree: Tyre[t1] } => '{ Cast(${ ree }, ${ Expr(cast) }) }
@@ -85,3 +103,7 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
 private given ToExpr[CastOp] with
   def apply(c: CastOp)(using Quotes) = c match
     case CastOp.Stringify => '{ CastOp.Stringify }
+
+private object Union:
+  def single(c: Char & Singleton): c.type = c
+  def apply[R2](c: Char & Singleton): c.type | R2 = c

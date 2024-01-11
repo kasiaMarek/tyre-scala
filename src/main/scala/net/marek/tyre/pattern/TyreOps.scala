@@ -10,7 +10,7 @@ private object Opt:
     Conv(Or(re, Epsilon), conv)
 
 private object OrM:
-  def merge[R1, R2](e: Either[R1, R2]): R1 | R2 = e match
+  private def merge[R1, R2](e: Either[R1, R2]): R1 | R2 = e match
     case Left(v) => v
     case Right(v) => v
   def apply[R1, R2](left: Tyre[R1], right: Tyre[R2]): Tyre[R1 | R2] =
