@@ -3,6 +3,7 @@ TyRE - a typed regex parser
 
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/kasiaMarek/tyre-scala/ci.yml)](https://github.com/kasiaMarek/tyre-scala/actions/workflows/ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/net.marek/tyre-scala_3)](https://central.sonatype.com/artifact/net.marek/tyre-scala_3)
+[![javadoc](https://javadoc.io/badge2/net.marek/tyre-scala_3/javadoc.svg?label=scaladoc&color=orange)](https://javadoc.io/doc/net.marek/tyre-scala_3)
 
 *TyRE* provides the following features compared to standard Java regex matcher:
   1. compile time validation
