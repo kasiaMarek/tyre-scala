@@ -28,6 +28,14 @@ lazy val root = (project in file("."))
   )
   .settings(publishSettings: _*)
 
+lazy val benchmark = (project in file("benchmark"))
+  .settings(basicSettings: _*)
+  .settings(
+    name := "tyre-benchmark"
+  )
+  .enablePlugins(JmhPlugin)
+  .dependsOn(root)
+
 lazy val scalacSettings = Seq(
   "-deprecation", // Emit warning and location for usages of deprecated APIs.
   "-explain", // Explain errors in more detail.
