@@ -8,11 +8,17 @@ import scala.util.Random
 class RegexBenchmark:
 
   @Benchmark
-  def runTyre: Unit = data.foreach(tyreTimeParser.run)
+  def runTyre: Unit = timeData.foreach(tyreTimeParser.run)
 
   @Benchmark
-  def runRegex: Unit = data.foreach:
+  def runRegex: Unit = timeData.foreach:
     case regexTimeParser(h, m) => (h.toInt, m.toInt)
+
+  @Benchmark
+  def runTyre10: Unit = emailData10.foreach(tyreEmailParser.run)
+
+  @Benchmark
+  def runTyre100: Unit = emailData100.foreach(tyreEmailParser.run)
 
   private val tyreTimeParser =
     val ht = tyre"[0-1]\d|2[0-3]"
@@ -24,9 +30,24 @@ class RegexBenchmark:
 
   private val regexTimeParser = """([0-1]\d|2[0-3]):([0-5]\d)""".r
 
+  private val tyreEmailParser =
+    val ut = tyre".+!s"
+    val dt = tyre"(.+\..+)!s"
+    val et = tyre"$ut@$dt"
+    et.compile()
+
   private val rand = Random()
+
   private def drawTime =
     val h = rand.between(0,24)
     val m = rand.between(0,60)
     f"$h%02d:$m%02d"
-  private val data = List.tabulate(100_000)(_ => drawTime)
+  private val timeData = List.tabulate(10_000)(_ => drawTime)
+
+  private def drawLetter = rand.between('a', 'z' + 1).toChar
+  private def drawEmail(length: Int) =
+    val u = List.tabulate(length)(_ => drawLetter).toString
+    val d = List.tabulate(length)(_ => drawLetter).toString
+    s"$u@$d.com"
+  private val emailData10 = List.tabulate(10_000)(_ => drawEmail(10))
+  private val emailData100 = List.tabulate(10_000)(_ => drawEmail(100))
