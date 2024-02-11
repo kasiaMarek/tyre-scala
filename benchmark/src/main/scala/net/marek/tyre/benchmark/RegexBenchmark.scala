@@ -8,23 +8,27 @@ import scala.util.Random
 class RegexBenchmark:
 
   @Benchmark
-  def runTyre: Unit = timeData.foreach(tyreTimeParser.run)
+  def runTimeTyre: Unit = timeData.foreach(tyreTimeParser.run)
 
   @Benchmark
-  def runRegex: Unit = timeData.foreach:
+  def runTimeRegex: Unit = timeData.foreach:
     case regexTimeParser(h, m) => (h.toInt, m.toInt)
 
   @Benchmark
-  def runTyre10: Unit = emailData10.foreach(tyreEmailParser.run)
+  def runEmailTyre10: Unit = emailData10.foreach(tyreEmailParser.run)
 
   @Benchmark
-  def runTyre100: Unit = emailData100.foreach(tyreEmailParser.run)
+  def runEmailRegex10: Unit = emailData10.foreach:
+    case regexEmailParser(u, d) => (u, d)
+
+  @Benchmark
+  def runEmailTyre100: Unit = emailData100.foreach(tyreEmailParser.run)
 
   private val tyreTimeParser =
     val ht = tyre"[0-1]\d|2[0-3]"
     val mt = tyre"[0-5]\d"
     val tt = tyre"$ht:$mt".map: t =>
-      val ((h10,h1), _, m10, m1) = t
+      val ((h10, h1), _, m10, m1) = t
       (h10.toInt * 10 + h1.toInt, m10.toInt * 10 + m1.toInt)
     tt.compile()
 
@@ -36,11 +40,13 @@ class RegexBenchmark:
     val et = tyre"$ut@$dt"
     et.compile()
 
+  private val regexEmailParser = """(.+)@(.+\..+)""".r
+
   private val rand = Random()
 
   private def drawTime =
-    val h = rand.between(0,24)
-    val m = rand.between(0,60)
+    val h = rand.between(0, 24)
+    val m = rand.between(0, 60)
     f"$h%02d:$m%02d"
   private val timeData = List.tabulate(10_000)(_ => drawTime)
 
