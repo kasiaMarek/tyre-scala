@@ -36,3 +36,7 @@ class StringInterpolatorTest extends AnyFunSuite:
     assertResult(Some(Some('a')))(m.run("a"))
     assertResult(Some(None))(m.run(""))
     assertResult(None)(m.run("aa"))
+
+  test("generic"):
+    val _ = [T, B] => (aa : Tyre[T], bb: Tyre[B]) => tyre"$aa$bb"
+    val _ = [T, B] => (aa : Conv[Int *: EmptyTuple, T], bb: Tyre[B]) => tyre"$bb$aa"

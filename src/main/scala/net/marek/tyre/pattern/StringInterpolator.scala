@@ -14,6 +14,10 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
 
   import quotes.reflect.*
 
+  def isNETuple(tpe: TypeRepr): Boolean =
+    val tupleSymbol = Symbol.requiredClass("scala.NonEmptyTuple")
+    tpe <:< tupleSymbol.typeRef
+
   val parts: Seq[String] = sc match
     case '{ StringContext($t: _*) } =>
       t match
@@ -54,8 +58,11 @@ private def tyreImpl(sc: Expr[StringContext], args: Expr[Seq[Any]])(using Quotes
       toTyre(re1) match
         case '{ $ree1: Tyre[t1] } =>
           toTyre(re2) match
-            case '{ $ree2: Tyre[t2 *: t3] } => '{ AndF(${ ree1 }, ${ ree2 }) }
-            case '{ $ree2: Tyre[t2] } => '{ And(${ ree1 }, ${ ree2 }) }
+            case '{ $ree2: Tyre[t2] } =>
+              '{ ${ ree2 }.asInstanceOf[Tyre[t2]] } match
+                case '{ $ree2: Tyre[t2 *: t3] } if isNETuple(ree2.asTerm.tpe.widen.dealias.typeArgs.head) =>
+                  '{ AndF(${ ree1 }, ${ ree2 }) }
+                case '{ $ree2: Tyre[t2] } => '{ And(${ ree1 }, ${ ree2 }) }
     case ReOr(re1, re2) =>
       toTyre(re1) match
         case '{ $ree1: Tyre[t1] } =>
