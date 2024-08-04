@@ -8,21 +8,30 @@ import scala.util.Random
 class RegexBenchmark:
 
   @Benchmark
-  def runTimeTyre: Unit = timeData.foreach(tyreTimeParser.run)
-
-  @Benchmark
   def runTimeRegex: Unit = timeData.foreach:
     case regexTimeParser(h, m) => (h.toInt, m.toInt)
 
   @Benchmark
-  def runEmailTyre10: Unit = emailData10.foreach(tyreEmailParser.run)
+  def runTimeTyre: Unit = timeData.foreach(tyreTimeParser.run)
 
   @Benchmark
-  def runEmailRegex10: Unit = emailData10.foreach:
+  def runEmailRegex15: Unit = emailData15.foreach:
     case regexEmailParser(u, d) => (u, d)
 
   @Benchmark
-  def runEmailTyre100: Unit = emailData100.foreach(tyreEmailParser.run)
+  def runEmailTyre15: Unit = emailData15.foreach(tyreEmailParser.run)
+
+  @Benchmark
+  def runEmailTyre45: Unit = emailData45.foreach(tyreEmailParser.run)
+
+  @Benchmark
+  def runEmailTyre75: Unit = emailData75.foreach(tyreEmailParser.run)
+
+  @Benchmark
+  def runEmailTyre105: Unit = emailData105.foreach(tyreEmailParser.run)
+
+  @Benchmark
+  def runEmailTyre135: Unit = emailData135.foreach(tyreEmailParser.run)
 
   private val tyreTimeParser =
     val ht = tyre"[0-1]\d|2[0-3]"
@@ -48,12 +57,16 @@ class RegexBenchmark:
     val h = rand.between(0, 24)
     val m = rand.between(0, 60)
     f"$h%02d:$m%02d"
-  private val timeData = List.tabulate(10_000)(_ => drawTime)
+  private val timeData = List.tabulate(1_000)(_ => drawTime)
 
   private def drawLetter = rand.between('a', 'z' + 1).toChar
   private def drawEmail(length: Int) =
     val u = List.tabulate(length)(_ => drawLetter).toString
     val d = List.tabulate(length)(_ => drawLetter).toString
     s"$u@$d.com"
-  private val emailData10 = List.tabulate(10_000)(_ => drawEmail(10))
-  private val emailData100 = List.tabulate(10_000)(_ => drawEmail(100))
+  // the total lenght is 2*lenght+5 -> user, domain and constant part
+  private val emailData15 = List.tabulate(1_000)(_ => drawEmail(5))
+  private val emailData45 = List.tabulate(1_000)(_ => drawEmail(20))
+  private val emailData75 = List.tabulate(1_000)(_ => drawEmail(35))
+  private val emailData105 = List.tabulate(1_000)(_ => drawEmail(50))
+  private val emailData135 = List.tabulate(1_000)(_ => drawEmail(65))
