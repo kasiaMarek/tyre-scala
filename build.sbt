@@ -6,7 +6,7 @@ lazy val basicSettings = Seq(
   name := "tyre-scala",
   description := "Typed regex parser",
   homepage := Some(url("https://github.com/kasiaMarek/tyre-scala")),
-  scalaVersion := "3.3.1"
+  scalaVersion := "3.3.3"
 )
 
 addCommandAlias("validate", "; compile; Test/compile; scalafmtCheck; test")
@@ -17,8 +17,8 @@ lazy val root = (project in file("."))
     licenses += ("Apache-2.0", new URI("https://www.apache.org/licenses/LICENSE-2.0.txt").toURL),
     versionScheme := Some("semver-spec"),
     libraryDependencies ++= Seq(
-      "org.scala-lang.modules" % "scala-parser-combinators_3" % "2.3.0",
-      "org.scalatest" %% "scalatest" % "3.2.16" % Test
+      "org.scala-lang.modules" % "scala-parser-combinators_3" % "2.4.0",
+      "org.scalatest" %% "scalatest" % "3.2.19" % Test
     ),
     Test / fork := true,
     javaOptions += "-Dfile.encoding=UTF-8",
