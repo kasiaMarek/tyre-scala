@@ -117,16 +117,16 @@ private[tyre] class TyreCompiler[IN <: Tuple, R](val context: Context[R *: IN]):
               Compose[List[T] *: S, List[T] *: T *: IS, R *: IN](
                 OnTail(transition.routine),
                 Transform:
-                  case l *: e *: t => is.op((l :+ e) *: t)
+                  case l *: e *: t => is.op((e :: l).reverse *: t)
               )
         case is: InitNonAcceptingState[?] =>
           transitionWithTail(transition, is):
-            case l *: e *: t => is.op((l :+ e) *: t)
+            case l *: e *: t => is.op((e :: l).reverse *: t)
       val looped = initStates.map: is =>
         transitionWithTail(transition, is):
           case l *: e *: t =>
             is.op(t) match
-              case Nil *: tt => (l :+ e) *: tt
+              case Nil *: tt => (e :: l) *: tt
       looped ++ withContinuation
 
     private def transitionWithTail[S <: Tuple, A <: Tuple](

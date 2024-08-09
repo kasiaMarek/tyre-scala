@@ -1,7 +1,10 @@
 package net.marek.tyre.automaton
 
-import scala.collection.mutable
 import net.marek.tyre.diagnostic.Renderer
+
+import scala.collection.mutable
+
+import TreeBuilder.*
 
 /* Type parameters name conventions:
 R - result type of parsing - parse tree shape
@@ -14,6 +17,7 @@ T - elementary TyRE type
 
 sealed private trait Routine[IS <: Tuple, OS <: Tuple]:
   def execOn(stack: IS, c: Char): OS
+  inline def &(inline c: Char) = RoutineWithChar(this, c)
 
 private case object Empty extends Routine[EmptyTuple, EmptyTuple]:
   def execOn(stack: EmptyTuple, c: Char): EmptyTuple = Tuple()
@@ -32,6 +36,20 @@ private case class OnTail[H, IS <: Tuple, OS <: Tuple](r: Routine[IS, OS]) exten
   def execOn(stack: H *: IS, c: Char): H *: OS = stack match
     case h *: t => h *: r.execOn(t, c)
 
+private case class RoutineWithChar[S <: Tuple, OS <: Tuple](routine: Routine[S, OS], c: Char):
+  def execOn(in: S) = routine.execOn(in, c)
+
+enum TreeBuilder[OS <: Tuple]:
+  inline def :*[OS2 <: Tuple](inline routine: RoutineWithChar[OS, OS2]) = Snoc(this, routine)
+  case Empty[OS <: Tuple](f: () => OS) extends TreeBuilder[OS]
+  case Snoc[S <: Tuple, OS <: Tuple](builder: TreeBuilder[S], routine: RoutineWithChar[S, OS]) extends TreeBuilder[OS]
+
+extension [OS <: Tuple](builder: TreeBuilder[OS])
+  def build(): OS =
+    builder match
+      case TreeBuilder.Empty(f) => f()
+      case TreeBuilder.Snoc(builder, routine) => routine.execOn(builder.build())
+
 private class Context[R <: Tuple]:
 
   // States
@@ -48,7 +66,7 @@ private class Context[R <: Tuple]:
   // Transitions to next state, performing routines
   sealed trait Transition[IS <: Tuple]:
     def state: State[?]
-    def thread(stack: IS, c: Char): Thread
+    def thread(builder0: TreeBuilder[IS], c: Char): Thread
 
   trait NonAcceptingTransition[IS <: Tuple] extends Transition[IS]:
     self =>
@@ -56,23 +74,21 @@ private class Context[R <: Tuple]:
     lazy val routine: Routine[IS, OS]
     lazy val nextState: NonAcceptingState[OS]
     def state = nextState
-    def thread(stack: IS, c: Char): Thread =
-      val newStack = routine.execOn(stack, c)
+    def thread(builder0: TreeBuilder[IS], c: Char): Thread =
       new Thread:
         type S = OS
         lazy val state = self.nextState
-        lazy val stack = newStack
+        lazy val builder: TreeBuilder[OS] = builder0 :* (routine & c)
 
   trait AcceptingTransition[IS <: Tuple] extends Transition[IS]:
     self =>
     lazy val routine: Routine[IS, R]
     def state = AcceptingState
-    def thread(stack: IS, c: Char): Thread =
-      val newStack = routine.execOn(stack, c)
+    def thread(builder0: TreeBuilder[IS], c: Char): Thread =
       new Thread:
         type S = R
         lazy val state = AcceptingState
-        lazy val stack = newStack
+        lazy val builder: TreeBuilder[S] = builder0 :* (routine & c)
 
   // Init states
   sealed trait InitState[-IS <: Tuple]:
@@ -88,7 +104,7 @@ private class Context[R <: Tuple]:
       new Thread:
         type S = OS
         lazy val state = self.state
-        lazy val stack = op(initStack)
+        lazy val builder: TreeBuilder[S] = TreeBuilder.Empty(() => op(initStack))
 
   case class InitAcceptingState[-IS <: Tuple](opr: IS => R) extends InitState[IS]:
     type OS = R
@@ -98,18 +114,18 @@ private class Context[R <: Tuple]:
       new Thread:
         type S = R
         lazy val state = AcceptingState
-        lazy val stack = op(initStack)
+        lazy val builder: TreeBuilder[S] = TreeBuilder.Empty(() => op(initStack))
 
   trait Thread:
     type S <: Tuple
     lazy val state: State[S]
-    lazy val stack: S
+    lazy val builder: TreeBuilder[S]
     def next(c: Char): List[Thread] =
       if state.test(c)
-      then state.next.map(_.thread(stack, c))
+      then state.next.map(_.thread(builder, c))
       else Nil
     def getIfAccepting: Option[R] = state match
-      case AcceptingState => Some(stack)
+      case AcceptingState => Some(builder.build())
       case _ => None
 
   trait Automaton[-IS <: Tuple]:
