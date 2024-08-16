@@ -4,7 +4,7 @@ import net.marek.tyre.diagnostic.Renderer
 
 import scala.collection.mutable
 
-import TreeBuilder.*
+import Deferred.*
 
 /* Type parameters name conventions:
 R - result type of parsing - parse tree shape
@@ -39,16 +39,16 @@ private case class OnTail[H, IS <: Tuple, OS <: Tuple](r: Routine[IS, OS]) exten
 private case class RoutineWithChar[S <: Tuple, OS <: Tuple](routine: Routine[S, OS], c: Char):
   def execOn(in: S) = routine.execOn(in, c)
 
-enum TreeBuilder[OS <: Tuple]:
+enum Deferred[OS <: Tuple]:
   inline def :*[OS2 <: Tuple](inline routine: RoutineWithChar[OS, OS2]) = Snoc(this, routine)
-  case Empty[OS <: Tuple](f: () => OS) extends TreeBuilder[OS]
-  case Snoc[S <: Tuple, OS <: Tuple](builder: TreeBuilder[S], routine: RoutineWithChar[S, OS]) extends TreeBuilder[OS]
+  case Empty[OS <: Tuple](f: () => OS) extends Deferred[OS]
+  case Snoc[S <: Tuple, OS <: Tuple](deferredResult: Deferred[S], routine: RoutineWithChar[S, OS]) extends Deferred[OS]
 
-extension [OS <: Tuple](builder: TreeBuilder[OS])
-  def build(): OS =
-    builder match
-      case TreeBuilder.Empty(f) => f()
-      case TreeBuilder.Snoc(builder, routine) => routine.execOn(builder.build())
+extension [OS <: Tuple](deferred: Deferred[OS])
+  def get(): OS =
+    deferred match
+      case Deferred.Empty(f) => f()
+      case Deferred.Snoc(deferred, routine) => routine.execOn(deferred.get())
 
 private class Context[R <: Tuple]:
 
@@ -66,7 +66,7 @@ private class Context[R <: Tuple]:
   // Transitions to next state, performing routines
   sealed trait Transition[IS <: Tuple]:
     def state: State[?]
-    def thread(builder0: TreeBuilder[IS], c: Char): Thread
+    def thread(deferredResult0: Deferred[IS], c: Char): Thread
 
   trait NonAcceptingTransition[IS <: Tuple] extends Transition[IS]:
     self =>
@@ -74,21 +74,21 @@ private class Context[R <: Tuple]:
     lazy val routine: Routine[IS, OS]
     lazy val nextState: NonAcceptingState[OS]
     def state = nextState
-    def thread(builder0: TreeBuilder[IS], c: Char): Thread =
+    def thread(deferredResult0: Deferred[IS], c: Char): Thread =
       new Thread:
         type S = OS
         lazy val state = self.nextState
-        lazy val builder: TreeBuilder[OS] = builder0 :* (routine & c)
+        lazy val deferredResult: Deferred[OS] = deferredResult0 :* (routine & c)
 
   trait AcceptingTransition[IS <: Tuple] extends Transition[IS]:
     self =>
     lazy val routine: Routine[IS, R]
     def state = AcceptingState
-    def thread(builder0: TreeBuilder[IS], c: Char): Thread =
+    def thread(deferredResult0: Deferred[IS], c: Char): Thread =
       new Thread:
         type S = R
         lazy val state = AcceptingState
-        lazy val builder: TreeBuilder[S] = builder0 :* (routine & c)
+        lazy val deferredResult: Deferred[S] = deferredResult0 :* (routine & c)
 
   // Init states
   sealed trait InitState[-IS <: Tuple]:
@@ -104,7 +104,7 @@ private class Context[R <: Tuple]:
       new Thread:
         type S = OS
         lazy val state = self.state
-        lazy val builder: TreeBuilder[S] = TreeBuilder.Empty(() => op(initStack))
+        lazy val deferredResult: Deferred[S] = Deferred.Empty(() => op(initStack))
 
   case class InitAcceptingState[-IS <: Tuple](opr: IS => R) extends InitState[IS]:
     type OS = R
@@ -114,18 +114,18 @@ private class Context[R <: Tuple]:
       new Thread:
         type S = R
         lazy val state = AcceptingState
-        lazy val builder: TreeBuilder[S] = TreeBuilder.Empty(() => op(initStack))
+        lazy val deferredResult: Deferred[S] = Deferred.Empty(() => op(initStack))
 
   trait Thread:
     type S <: Tuple
     lazy val state: State[S]
-    lazy val builder: TreeBuilder[S]
+    lazy val deferredResult: Deferred[S]
     def next(c: Char): List[Thread] =
       if state.test(c)
-      then state.next.map(_.thread(builder, c))
+      then state.next.map(_.thread(deferredResult, c))
       else Nil
     def getIfAccepting: Option[R] = state match
-      case AcceptingState => Some(builder.build())
+      case AcceptingState => Some(deferredResult.get())
       case _ => None
 
   trait Automaton[-IS <: Tuple]:
