@@ -6,7 +6,7 @@ lazy val basicSettings = Seq(
   name := "tyre-scala",
   description := "Typed regex parser",
   homepage := Some(url("https://github.com/kasiaMarek/tyre-scala")),
-  scalaVersion := "3.3.3"
+  scalaVersion := "3.3.4"
 )
 
 addCommandAlias("validate", "; compile; Test/compile; scalafmtCheck; test")
